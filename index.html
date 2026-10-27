@@ -332,15 +332,13 @@ function renderStrips() {
     cheap.map((c) => `<div class="${beats(c) ? "beat" : ""}"><span class="sprice">${fmt$(c.seat.min)}</span>` +
       `<span class="sro2">${c.label}${c.seat.min != null ? ` · Sec ${c.seat.section} Row ${c.seat.row}` : ""}</span>${verdict(c)}</div>`).join("") +
     `</div>`;
-  // Singles (q1) start with the first reading after they were added; show "—" until then.
-  const s4 = lowOf(L.q4.filter(isSro)), s2 = lowOf(L.q2.filter(isSro)), s1 = lowOf((L.q1 || []).filter(isSro)), el = $("s-sro");
-  el.className = "srow small" + ([s4.min, s2.min, s1.min].some((v) => v != null && v <= MAXES.sro) ? " buy" : "");
+  // Cheapest standing room per ticket, whatever the quantity (single, pair or 4).
+  const sro = [...(L.q1 || []), ...L.q2, ...L.q4].filter(isSro).reduce((m, l) => (!m || l[0] < m[0] ? l : m), null), el = $("s-sro");
+  el.className = "srow small" + (sro && sro[0] <= MAXES.sro ? " buy" : "");
   el.innerHTML = `
     <div class="sline">
-      <span class="sname">Standing room</span>
-      <span class="sprice">${fmt$(s4.min)}</span><span class="sro2">4 together (${s4.count})</span>
-      <span class="sprice">${fmt$(s2.min)}</span><span class="sro2">pairs (${s2.count})</span>
-      <span class="sprice">${fmt$(s1.min)}</span><span class="sro2">single (${L.q1 ? s1.count : "—"})</span>
+      <span class="sname">Cheapest standing room</span>
+      <span class="sprice">${fmt$(sro?.[0])}</span><span class="sro2">${sro ? "per ticket" : "none listed"} · max ${fmt$(MAXES.sro)}</span>
     </div>`;
 }
 
