@@ -14,6 +14,7 @@ const UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/6
 const END = Date.parse("2026-10-28T00:00:00Z");       // 8:00 PM EDT
 const MAX_RUN_MIN = Number(process.env.MAX_RUN_MIN || 55);
 const FILE = new URL("./history.json", import.meta.url);
+const LATEST = new URL("./latest.json", import.meta.url); // every current listing, overwritten each poll
 const TOP_N = 5;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -49,7 +50,8 @@ async function fetchQty(q) {
         if (!levels[k]) levels[k] = { min: r.price, section: r.section, row: r.row, count: 0 };
         levels[k].count++;
       }
-      return { count: rows.length, min: prices[0] ?? null, p25: pct(prices, 0.25), median: pct(prices, 0.5), top: rows.slice(0, TOP_N), levels };
+      const summary = { count: rows.length, min: prices[0] ?? null, p25: pct(prices, 0.25), median: pct(prices, 0.5), top: rows.slice(0, TOP_N), levels };
+      return { summary, rows };
     } catch (e) {
       lastErr = e;
       await sleep(15_000);
@@ -58,9 +60,12 @@ async function fetchQty(q) {
   throw new Error(`q=${q}: ${lastErr.message}`);
 }
 
+// Returns the history reading plus every listing (compact) for latest.json.
 async function poll() {
   const [q2, q4] = await Promise.all([fetchQty(2), fetchQty(4)]);
-  return { t: new Date().toISOString(), q2, q4 };
+  const t = new Date().toISOString();
+  const compact = (rows) => rows.map((r) => [r.price, r.section, r.row, r.group]);
+  return { reading: { t, q2: q2.summary, q4: q4.summary }, latest: { t, fields: ["price", "section", "row", "group"], q2: compact(q2.rows), q4: compact(q4.rows) } };
 }
 
 function load() {
@@ -78,7 +83,7 @@ function append(reading) {
 function publish(reading) {
   if (!process.env.GITHUB_ACTIONS) return;
   const sh = (c) => execSync(c, { stdio: "inherit" });
-  sh("git add history.json");
+  sh("git add history.json latest.json");
   execSync("git commit -q -F -", { input: `reading ${reading.t} q4 low $${reading.q4.min} q2 low $${reading.q2.min}\n`, stdio: ["pipe", "inherit", "inherit"] });
   for (let i = 0; i < 4; i++) {
     try { sh("git pull -q --rebase origin main && git push -q origin HEAD:main"); return; }
@@ -92,10 +97,10 @@ const summary = (r) =>
   `pairs: ${r.q2.count} listings, low $${r.q2.min}, med $${r.q2.median}`;
 
 async function once(write) {
-  const r = await poll();
+  const { reading: r, latest } = await poll();
   console.log(summary(r));
   if (r.q2.count === 0 && r.q4.count === 0) throw new Error("no listings returned");
-  if (write) { append(r); publish(r); }
+  if (write) { append(r); writeFileSync(LATEST, JSON.stringify(latest) + "\n"); publish(r); }
   return r;
 }
 

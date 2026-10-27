@@ -74,9 +74,13 @@
   table.lv td.hit { background: var(--good-bg); }
   table.lv td.hit .p { color: var(--good); }
   table.lv td.hit .sr { color: #a8e8c2; }
-  .settings { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 12px 14px; }
-  .settings input { font: inherit; font-size: 20px; font-weight: 700; width: 120px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); }
-  .settings button { font: inherit; font-weight: 700; padding: 9px 14px; border-radius: 10px; border: 0; background: var(--surface-2); color: var(--text); }
+  .maxbar { margin-top: 12px; display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 10px 14px; }
+  .maxbar label { font-weight: 700; color: var(--text-2); font-size: 16px; }
+  .maxbar input { font: inherit; font-size: 22px; font-weight: 800; width: 100px; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); }
+  .maxbar .steps { margin-left: auto; display: flex; gap: 6px; }
+  .maxbar .rbtn { padding: 8px 11px; }
+  table.lv .more { font-size: 13px; color: var(--text-2); display: block; }
+  table.lv td.none { color: var(--muted); }
   .err { color: var(--bad); font-size: 14px; margin-top: 8px; }
   footer { margin-top: 18px; color: var(--muted); font-size: 13px; }
   footer a { color: var(--text-2); }
@@ -100,6 +104,12 @@
     </div>
   </header>
 
+  <div class="maxbar">
+    <label for="max">Max $/ticket</label>
+    <input id="max" type="number" inputmode="numeric" min="0" step="25">
+    <div class="steps"><button class="rbtn" data-step="-50">−50</button><button class="rbtn" data-step="50">+50</button></div>
+  </div>
+
   <div class="strip">
     <div class="srow" id="s-q4"></div>
     <div class="srow" id="s-q2"></div>
@@ -107,21 +117,13 @@
   <div class="err" id="err"></div>
 
   <section>
-    <h2>Cheapest by level</h2>
-    <table id="t-lv" class="lv"></table>
+    <h2 id="sec-title">Best by section under max</h2>
+    <table id="t-sec" class="lv"></table>
   </section>
 
   <section><h2>4 together · $/ticket</h2><div class="chartbox"><canvas id="c-q4"></canvas></div></section>
   <section><h2>Pairs · $/ticket</h2><div class="chartbox"><canvas id="c-q2"></canvas></div></section>
   <section><h2>Listing count</h2><div class="chartbox"><canvas id="c-n"></canvas></div></section>
-
-  <section>
-    <div class="settings">
-      <label for="max"><b>MAX_PRICE</b> $/ticket</label>
-      <input id="max" type="number" inputmode="numeric" min="0" step="25">
-      <button class="rbtn" id="refresh">↻ Refresh now</button>
-    </div>
-  </section>
 
   <footer>
     Readings every 5 min. Baseline = first reading. Trailing avg = previous 3 readings.
@@ -144,10 +146,13 @@ function store(k, v) { try { if (v === undefined) return localStorage.getItem(k)
 const qp = new URLSearchParams(location.search);
 let MAX = Number(qp.get("max") || store("maxPrice") || DEFAULT_MAX);
 $("max").value = MAX;
+document.querySelectorAll("[data-step]").forEach((b) => b.addEventListener("click", () => {
+  MAX = Math.max(25, MAX + Number(b.dataset.step)); $("max").value = MAX; store("maxPrice", String(MAX)); render();
+}));
 $("max").addEventListener("change", () => { const v = Number($("max").value); if (v > 0) { MAX = v; store("maxPrice", String(v)); render(); } });
 // Manual refresh: show it's working, and say so even when no newer reading exists yet.
 async function manualRefresh() {
-  const btns = [$("refresh"), $("refresh-top")];
+  const btns = [$("refresh-top")];
   btns.forEach((b) => { b.disabled = true; b.dataset.label ??= b.textContent; b.textContent = "Refreshing…"; });
   const before = H?.readings?.length || 0;
   await load();
@@ -155,24 +160,29 @@ async function manualRefresh() {
   btns.forEach((b) => { b.disabled = false; b.textContent = after > before ? "✓ New data" : "✓ Up to date"; });
   setTimeout(() => btns.forEach((b) => (b.textContent = b.dataset.label)), 2500);
 }
-$("refresh").addEventListener("click", manualRefresh);
 $("refresh-top").addEventListener("click", manualRefresh);
 
 // Data: same-origin history.json (GitHub Pages) and raw.githubusercontent.com (updates
 // without waiting for a Pages build). Whichever has the newer last reading wins.
-function sources() {
-  const s = ["history.json"];
+function sources(file) {
+  const s = [file];
   const m = location.hostname.match(/^([^.]+)\.github\.io$/);
   const repo = location.pathname.split("/").filter(Boolean)[0];
-  if (m && repo) s.push(`https://raw.githubusercontent.com/${m[1]}/${repo}/main/history.json`);
+  if (m && repo) s.push(`https://raw.githubusercontent.com/${m[1]}/${repo}/main/${file}`);
   return s;
 }
-let H = null, lastFetchOk = 0;
+let H = null, L = null, lastFetchOk = 0;
 const newer = (a, b) => !b || a.readings.length > b.readings.length || (a.readings.length === b.readings.length && String(a.updated) > String(b.updated));
 // Render as soon as any source answers (weak cell signal), then upgrade if another is newer.
 async function load() {
   let got = 0;
-  await Promise.allSettled(sources().map(async (u) => {
+  const latest = Promise.allSettled(sources("latest.json").map(async (u) => {
+    const r = await fetch(u + "?t=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) return;
+    const d = await r.json();
+    if (d?.t && (!L || d.t > L.t)) { L = d; if (H) renderSections(); }
+  }));
+  await Promise.allSettled(sources("history.json").map(async (u) => {
     const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 8000);
     try {
       const r = await fetch(u + (u.includes("?") ? "&" : "?") + "t=" + Date.now(), { cache: "no-store", signal: ctl.signal });
@@ -183,6 +193,7 @@ async function load() {
       if (newer(d, H)) { H = d; render(); }
     } finally { clearTimeout(timer); }
   }));
+  await latest;
   if (!got) { $("err").textContent = "Couldn't reach data (no signal?) — showing last loaded, will retry."; renderFresh(); return; }
   $("checked").textContent = "Checked " + new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit", timeZone: "America/New_York" }) + " ET · new readings every 5 min";
   render();
@@ -215,24 +226,34 @@ function renderStrip(q) {
     <div class="smeta"><b>${cur[q].count}</b> listed ${delta(cur[q].count, base[q].count, "base", false)} · ${delta(cur[q].count, trailing(R, n - 1, q, "count"), "trail", false)}</div>`;
 }
 
-// Gametime section_group names, ordered field level → upper deck; unknown groups go last.
-const LEVEL_ORDER = ["Infield", "Baseline Box", "Outfield", "Press Level", "Party Deck", "Upper Deck", "Standing Room Only"];
-function renderLevels() {
-  const R = H.readings, cur = R.at(-1), el = $("t-lv");
-  if (!cur.q4.levels && !cur.q2.levels) { el.innerHTML = `<tr><td class="sub">Per-level prices start with the next reading.</td></tr>`; return; }
-  const names = [...new Set([...Object.keys(cur.q4.levels || {}), ...Object.keys(cur.q2.levels || {})])]
-    .sort((a, b) => (LEVEL_ORDER.indexOf(a) + 1 || 99) - (LEVEL_ORDER.indexOf(b) + 1 || 99) || a.localeCompare(b));
-  // Per-level baseline = first reading that recorded that level.
-  const base = (q, name) => R.find((r) => r[q].levels?.[name])?.[q].levels[name].min;
-  const cell = (q, name) => {
-    const l = cur[q].levels?.[name];
-    if (!l) return `<td><span class="sr">none</span></td>`;
-    const b = base(q, name), d = b == null ? 0 : l.min - b;
-    const dd = Math.abs(d) < 1 ? `<span class="d flat">• at base</span>` : `<span class="d ${d < 0 ? "down" : "up"}">${d < 0 ? "▼" : "▲"} ${fmt$(Math.abs(d))} vs base</span>`;
-    return `<td class="${l.min <= MAX ? "hit" : ""}"><span class="p">${fmt$(l.min)}</span><span class="sr">Sec ${l.section} · Row ${l.row} · ${l.count} listed</span>${dd}</td>`;
-  };
-  el.innerHTML = `<tr><th>Level</th><th><span class="dot" style="background:var(--q4)"></span> 4 together</th><th><span class="dot" style="background:var(--q2)"></span> Pairs</th></tr>` +
-    names.map((n) => `<tr><td class="lvname">${n}</td>${cell("q4", n)}${cell("q2", n)}</tr>`).join("");
+// Best (cheapest) listing at or under MAX in every section, from latest.json's full listing set.
+function renderSections() {
+  const el = $("t-sec");
+  $("sec-title").textContent = `Best by section at or under ${fmt$(MAX)}`;
+  if (!L) { el.innerHTML = `<tr><td class="sub">Section list loads with the next reading.</td></tr>`; return; }
+  const secs = new Map();
+  for (const q of ["q4", "q2"]) {
+    for (const [price, section, row, group] of L[q]) {
+      const k = section || "?";
+      if (!secs.has(k)) secs.set(k, { section: k, group, q4: null, q2: null, n4: 0, n2: 0 });
+      const e = secs.get(k);
+      if (price > MAX) continue;
+      if (q === "q4") { e.n4++; if (!e.q4) e.q4 = { price, row }; } else { e.n2++; if (!e.q2) e.q2 = { price, row }; }
+    }
+  }
+  const hits = [...secs.values()].filter((e) => e.q4 || e.q2)
+    .sort((a, b) => (a.q4?.price ?? 1e9) - (b.q4?.price ?? 1e9) || (a.q2?.price ?? 1e9) - (b.q2?.price ?? 1e9));
+  const age = Math.floor((Date.now() - Date.parse(L.t)) / 60000);
+  if (!hits.length) {
+    const c4 = L.q4[0], c2 = L.q2[0];
+    el.innerHTML = `<tr><td class="none">Nothing at or under ${fmt$(MAX)} right now.<br>Closest: ${c4 ? `4 together ${fmt$(c4[0])} Sec ${c4[1]} Row ${c4[2]}` : "no 4-together listings"}${c2 ? ` · pair ${fmt$(c2[0])} Sec ${c2[1]} Row ${c2[2]}` : ""}</td></tr>`;
+    return;
+  }
+  const cell = (b, n) => !b ? `<td class="none">—</td>`
+    : `<td class="hit"><span class="p">${fmt$(b.price)}</span><span class="sr">Row ${b.row}</span>${n > 1 ? `<span class="more">+${n - 1} more under</span>` : ""}</td>`;
+  el.innerHTML = `<tr><th>Section</th><th><span class="dot" style="background:var(--q4)"></span> 4 together</th><th><span class="dot" style="background:var(--q2)"></span> Pairs</th></tr>` +
+    hits.map((e) => `<tr><td class="lvname">${e.section}<span class="sr">${e.group || ""}</span></td>${cell(e.q4, e.n4)}${cell(e.q2, e.n2)}</tr>`).join("") +
+    `<tr><td colspan="3" class="sub">${hits.length} section${hits.length > 1 ? "s" : ""} · all listings as of ${age < 1 ? "just now" : age + " min ago"}</td></tr>`;
 }
 
 function renderFresh() {
@@ -304,7 +325,7 @@ function render() {
   if (!H?.readings?.length) { renderFresh(); return; }
   renderFresh();
   for (const q of ["q4", "q2"]) renderStrip(q);
-  renderLevels();
+  renderSections();
   drawChart("c-q4", priceDatasets("q4"), true);
   drawChart("c-q2", priceDatasets("q2"), true);
   drawChart("c-n", countDatasets(), false);
