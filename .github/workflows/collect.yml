@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write
   actions: write
+  issues: write
 concurrency:
   group: collector
   cancel-in-progress: false
@@ -24,6 +25,8 @@ jobs:
           git config user.name "price-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - run: node collect.mjs --loop
+        env:
+          GH_TOKEN: ${{ github.token }}
       # Chain the next run ourselves so coverage doesn't depend on GitHub's cron firing
       # (scheduled triggers are often late or skipped). Stops after first pitch.
       - name: Start next run
