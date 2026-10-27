@@ -126,7 +126,6 @@
   <div class="strip">
     <div class="srow" id="s-pref"></div>
     <div class="srow" id="s-seat4"></div>
-    <div class="srow" id="s-seat2"></div>
     <div class="srow small" id="s-sro"></div>
   </div>
   <div class="err" id="err"></div>
@@ -142,7 +141,6 @@
   </section>
 
   <section><h2>4 together · $/ticket</h2><div class="chartbox"><canvas id="c-q4"></canvas></div></section>
-  <section><h2>Pairs · $/ticket</h2><div class="chartbox"><canvas id="c-q2"></canvas></div></section>
   <section><h2>Listing count</h2><div class="chartbox"><canvas id="c-n"></canvas></div></section>
 
   <footer>
@@ -278,7 +276,6 @@ function renderStrips() {
   stripRow("s-pref", "★ Preferred · 4 together", C.pref, "q4", "pref", lowOf(L.q4.filter(isPreferred)),
     `<div class="snote">Sec 105–125 rows A–V · 200s/300s rows A–B · no Party Deck · any price</div>`);
   stripRow("s-seat4", "Seated · 4 together", C.q4, "q4", "seated", lowOf(seated("q4")));
-  stripRow("s-seat2", "Seated · Pairs", C.q2, "q2", "seated", lowOf(seated("q2")));
   const s4 = lowOf(L.q4.filter(isSro)), s2 = lowOf(L.q2.filter(isSro)), el = $("s-sro");
   el.className = "srow small" + ([s4.min, s2.min].some((v) => v != null && v <= MAX) ? " buy" : "");
   el.innerHTML = `
@@ -325,29 +322,25 @@ function renderSections() {
   const el = $("t-sec");
   $("sec-title").textContent = `Best by section at or under ${fmt$(MAX)}`;
   if (!L) { el.innerHTML = `<tr><td class="sub">Section list loads with the next reading.</td></tr>`; return; }
+  // 4 together only (pairs are shown just for standing room, in the strip above).
   const secs = new Map();
-  for (const q of ["q4", "q2"]) {
-    for (const [price, section, row, group] of L[q]) {
-      const k = section || "?";
-      if (!secs.has(k)) secs.set(k, { section: k, group, q4: null, q2: null, n4: 0, n2: 0 });
-      const e = secs.get(k);
-      if (price > MAX) continue;
-      if (q === "q4") { e.n4++; if (!e.q4) e.q4 = { price, row }; } else { e.n2++; if (!e.q2) e.q2 = { price, row }; }
-    }
+  for (const [price, section, row, group] of L.q4) {
+    if (price > MAX) continue;
+    const k = section || "?";
+    if (!secs.has(k)) secs.set(k, { section: k, group, best: { price, row }, n: 0 });
+    secs.get(k).n++;
   }
-  const hits = [...secs.values()].filter((e) => e.q4 || e.q2)
-    .sort((a, b) => (a.q4?.price ?? 1e9) - (b.q4?.price ?? 1e9) || (a.q2?.price ?? 1e9) - (b.q2?.price ?? 1e9));
+  const hits = [...secs.values()].sort((a, b) => a.best.price - b.best.price);
   const age = Math.floor((Date.now() - Date.parse(L.t)) / 60000);
   if (!hits.length) {
-    const c4 = L.q4[0], c2 = L.q2[0];
-    el.innerHTML = `<tr><td class="none">Nothing at or under ${fmt$(MAX)} right now.<br>Closest: ${c4 ? `4 together ${fmt$(c4[0])} Sec ${c4[1]} Row ${c4[2]}` : "no 4-together listings"}${c2 ? ` · pair ${fmt$(c2[0])} Sec ${c2[1]} Row ${c2[2]}` : ""}</td></tr>`;
+    const c4 = L.q4[0];
+    el.innerHTML = `<tr><td class="none">Nothing at or under ${fmt$(MAX)} right now.<br>Closest: ${c4 ? `4 together ${fmt$(c4[0])} Sec ${c4[1]} Row ${c4[2]}` : "no 4-together listings"}</td></tr>`;
     return;
   }
-  const cell = (b, n) => !b ? `<td class="none">—</td>`
-    : `<td class="hit"><span class="p">${fmt$(b.price)}</span><span class="sr">Row ${b.row}</span>${n > 1 ? `<span class="more">+${n - 1} more under</span>` : ""}</td>`;
-  el.innerHTML = `<tr><th>Section</th><th><span class="dot" style="background:var(--q4)"></span> 4 together</th><th><span class="dot" style="background:var(--q2)"></span> Pairs</th></tr>` +
-    hits.map((e) => `<tr><td class="lvname">${e.section}<span class="sr">${e.group || ""}</span></td>${cell(e.q4, e.n4)}${cell(e.q2, e.n2)}</tr>`).join("") +
-    `<tr><td colspan="3" class="sub">${hits.length} section${hits.length > 1 ? "s" : ""} · all listings as of ${age < 1 ? "just now" : age + " min ago"}</td></tr>`;
+  el.innerHTML = `<tr><th>Section</th><th><span class="dot" style="background:var(--q4)"></span> 4 together</th></tr>` +
+    hits.map((e) => `<tr><td class="lvname">${e.section}<span class="sr">${e.group || ""}</span></td><td class="hit"><span class="p">${fmt$(e.best.price)}</span>` +
+      `<span class="sr">Row ${e.best.row}</span>${e.n > 1 ? `<span class="more">+${e.n - 1} more under</span>` : ""}</td></tr>`).join("") +
+    `<tr><td colspan="2" class="sub">${hits.length} section${hits.length > 1 ? "s" : ""} · all listings as of ${age < 1 ? "just now" : age + " min ago"}</td></tr>`;
 }
 
 function renderFresh() {
@@ -400,7 +393,7 @@ function priceDatasets(q) {
 }
 function countDatasets() {
   const R = H.readings, xs = R.map((r) => Date.parse(r.t)), out = [];
-  for (const q of ["q4", "q2"]) {
+  for (const q of ["q4"]) {
     out.push(line(LABEL[q], R.map((r, i) => ({ x: xs[i], y: r[q].count })), C[q], { borderWidth: 3, pointRadius: R.length < 3 ? 4 : 0 }));
     out.push(hline(`_${LABEL[q]} baseline`, R[0][q].count, xs, alpha(C[q], 0.8), { borderDash: [6, 5], borderWidth: 1.5 }));
     out.push(line(`_${LABEL[q]} trail avg`, R.map((r, i) => ({ x: xs[i], y: i ? trailing(R, i, q, "count") : null })), alpha(C[q], 0.8), { borderWidth: 1 }));
@@ -423,7 +416,6 @@ function render() {
   renderStrips();
   renderSections();
   drawChart("c-q4", priceDatasets("q4"), true);
-  drawChart("c-q2", priceDatasets("q2"), true);
   drawChart("c-n", countDatasets(), false);
 }
 
