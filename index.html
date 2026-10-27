@@ -183,7 +183,7 @@
   <details class="fold"><summary>How this works</summary><footer>
     Brewers @ Rays · Tropicana Field · Tue Oct 27 · 8:00 PM ET. Prices are Gametime all-in, per ticket.
     Seated = assigned seats only: a numbered section and a real row (no Party Deck, section ranges with row TBD, or wheelchair rows).
-    Preferred = seated in Sec 105–125 rows A–V (first 20) or any 200s/300s section rows A–B (first 2);
+    Preferred = seated in Sec 100–126 rows A–Y (first 23) or any 200s/300s section rows A–C (first 3);
     rows skip I and O. Readings every minute. Baseline = first reading. Trailing avg = previous 3 readings.
     ▲/▼ compare the current reading to each. Read-only tracker — never buys anything.
     <span id="src"></span>
@@ -215,7 +215,7 @@ const isAssigned = ([, section, row, group]) => /^\d+$/.test(section) && rowNum(
 function isPreferred(l) {
   if (!isAssigned(l)) return false;
   const s = Number(l[1]), n = rowNum(l[2]);
-  return (s >= 105 && s <= 125 && n <= 20) || (s >= 200 && s < 400 && n <= 2);
+  return (s >= 100 && s <= 126 && n <= 23) || (s >= 200 && s < 400 && n <= 3);
 }
 // latest.json rows are price-sorted, so the first match is the cheapest.
 const lowOf = (rs) => ({ min: rs[0]?.[0] ?? null, section: rs[0]?.[1] ?? "", row: rs[0]?.[2] ?? "", count: rs.length });
