@@ -61,6 +61,9 @@
   .srow.small .sname { font-size: 14px; }
   .snote { font-size: 12px; color: var(--muted); margin-top: 2px; }
   .sro2 { font-size: 15px; color: var(--muted); }
+  .cheap { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 4px; }
+  .cheap .sprice { display: block; }
+  .cheap .sro2 { display: block; font-size: 13px; }
   .swhere { font-size: 14px; color: var(--muted); }
   .smeta { font-size: 14px; color: var(--text-2); margin-top: 2px; }
   .smeta b { color: var(--text); }
@@ -137,6 +140,7 @@
   <div class="strip">
     <div class="srow" id="s-pref"></div>
     <div class="srow" id="s-seat4"></div>
+    <div class="srow small" id="s-cheap"></div>
     <div class="srow small" id="s-sro"></div>
   </div>
   <div class="err" id="err"></div>
@@ -308,6 +312,12 @@ function renderStrips() {
     `<div class="snote">Sec 105–125 rows A–V · 200s/300s rows A–B · assigned seats only · max ${fmt$(MAXES.pref)}</div>`);
   stripRow("s-seat4", "Seated · 4 together", C.q4, "q4", "seated", lowOf(L.q4.filter(isAssigned)), MAXES.seat,
     `<div class="snote">Assigned seats only (no Party Deck, TBD or wheelchair) · max ${fmt$(MAXES.seat)}</div>`);
+  // Cheapest assigned seat for 1, 2 and 4 tickets anywhere in the park (same seat rules as Seated).
+  const cheap = [["q1", "Single"], ["q2", "Pair"], ["q4", "4 together"]].map(([q, label]) => ({ label, has: !!L[q], ...lowOf((L[q] || []).filter(isAssigned)) }));
+  $("s-cheap").className = "srow small" + (cheap.some((c) => c.min != null && c.min <= MAXES.seat) ? " buy" : "");
+  $("s-cheap").innerHTML = `<span class="sname">Cheapest real seat · per ticket</span><div class="cheap">` +
+    cheap.map((c) => `<div><span class="sprice">${fmt$(c.min)}</span><span class="sro2">${c.label}${c.min != null ? ` · Sec ${c.section} Row ${c.row}` : c.has ? " · none" : " · starts soon"}</span></div>`).join("") +
+    `</div>`;
   // Singles (q1) start with the first reading after they were added; show "—" until then.
   const s4 = lowOf(L.q4.filter(isSro)), s2 = lowOf(L.q2.filter(isSro)), s1 = lowOf((L.q1 || []).filter(isSro)), el = $("s-sro");
   el.className = "srow small" + ([s4.min, s2.min, s1.min].some((v) => v != null && v <= MAXES.sro) ? " buy" : "");
