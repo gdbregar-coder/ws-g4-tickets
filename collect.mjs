@@ -17,6 +17,24 @@ const FILE = new URL("./history.json", import.meta.url);
 const LATEST = new URL("./latest.json", import.meta.url); // every current listing, overwritten each poll
 const TOP_N = 5;
 
+// Seat classes. Rows are letters skipping I and O (A..Z then AA..ZZ) or plain numbers.
+// Preferred = Sec 105-125 rows 1-20 (A-V), or any 200s/300s section rows 1-2 (A-B). Mirrored in index.html.
+const ROWS = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+function rowNum(r) {
+  r = String(r).trim().toUpperCase();
+  if (/^\d+$/.test(r)) return Number(r);
+  const m = r.match(/^([A-Z])\1?$/), i = m ? ROWS.indexOf(m[1]) : -1;
+  return i < 0 ? null : i + 1 + (r.length === 2 ? ROWS.length : 0);
+}
+const isSro = (r) => r.section === "SRO" || r.group === "Standing Room Only";
+function isPreferred(r) {
+  if (!/^\d+$/.test(r.section)) return false;
+  const s = Number(r.section), n = rowNum(r.row);
+  return n != null && ((s >= 105 && s <= 125 && n <= 20) || (s >= 200 && s < 400 && n <= 2));
+}
+// Cheapest of a (price-sorted) subset.
+const low = (rs) => ({ min: rs[0]?.price ?? null, section: rs[0]?.section ?? "", row: rs[0]?.row ?? "", count: rs.length });
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const intervalAt = () => 5 * 60_000;
 
@@ -50,7 +68,8 @@ async function fetchQty(q) {
         if (!levels[k]) levels[k] = { min: r.price, section: r.section, row: r.row, count: 0 };
         levels[k].count++;
       }
-      const summary = { count: rows.length, min: prices[0] ?? null, p25: pct(prices, 0.25), median: pct(prices, 0.5), top: rows.slice(0, TOP_N), levels };
+      const summary = { count: rows.length, min: prices[0] ?? null, p25: pct(prices, 0.25), median: pct(prices, 0.5), top: rows.slice(0, TOP_N), levels,
+        seated: low(rows.filter((r) => !isSro(r))), sro: low(rows.filter(isSro)), pref: low(rows.filter(isPreferred)) };
       return { summary, rows };
     } catch (e) {
       lastErr = e;

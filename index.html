@@ -24,6 +24,8 @@
     --bad: #e66767;
     --warn: #e0a400;
     --max: #e34948;
+    --seat: #e0a400;
+    --pref: #b47ae8;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--text); }
@@ -55,6 +57,10 @@
   .sname { font-size: 15px; font-weight: 700; color: var(--text-2); display: flex; align-items: center; gap: 6px; min-width: 100px; }
   .sprice { font-size: 34px; font-weight: 800; letter-spacing: -.5px; line-height: 1.1; }
   .srow.buy .sprice { color: var(--good); }
+  .srow.small .sprice { font-size: 24px; }
+  .srow.small .sname { font-size: 14px; }
+  .snote { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .sro2 { font-size: 15px; color: var(--muted); }
   .swhere { font-size: 14px; color: var(--muted); }
   .smeta { font-size: 14px; color: var(--text-2); margin-top: 2px; }
   .smeta b { color: var(--text); }
@@ -111,10 +117,17 @@
   </div>
 
   <div class="strip">
-    <div class="srow" id="s-q4"></div>
-    <div class="srow" id="s-q2"></div>
+    <div class="srow" id="s-pref"></div>
+    <div class="srow" id="s-seat4"></div>
+    <div class="srow" id="s-seat2"></div>
+    <div class="srow small" id="s-sro"></div>
   </div>
   <div class="err" id="err"></div>
+
+  <section>
+    <h2 id="pref-title">★ Preferred · 4 together · any price</h2>
+    <table id="t-pref" class="lv"></table>
+  </section>
 
   <section>
     <h2 id="sec-title">Best by section under max</h2>
@@ -126,7 +139,8 @@
   <section><h2>Listing count</h2><div class="chartbox"><canvas id="c-n"></canvas></div></section>
 
   <footer>
-    Readings every 5 min. Baseline = first reading. Trailing avg = previous 3 readings.
+    Seated = everything except standing room. Preferred = Sec 105–125 rows A–V (first 20) or any 200s/300s section rows A–B (first 2);
+    rows skip I and O. Readings every 5 min. Baseline = first reading. Trailing avg = previous 3 readings.
     ▲/▼ compare the current reading to each. Read-only tracker — never buys anything.
     <span id="src"></span>
   </footer>
@@ -139,8 +153,25 @@ const DEFAULT_MAX = 900;
 const $ = (id) => document.getElementById(id);
 const fmt$ = (v) => v == null ? "—" : "$" + Math.round(v).toLocaleString("en-US");
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-const C = { q4: css("--q4"), q2: css("--q2"), max: css("--max"), text2: css("--text-2"), muted: css("--muted"), grid: "#2a2a28" };
+const C = { q4: css("--q4"), q2: css("--q2"), max: css("--max"), seat: css("--seat"), pref: css("--pref"), text2: css("--text-2"), muted: css("--muted"), grid: "#2a2a28" };
 const LABEL = { q4: "4 together", q2: "Pairs" };
+
+// Seat classes (mirrors collect.mjs). Rows are letters skipping I and O (A..Z then AA..ZZ) or numbers.
+const ROWS = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+function rowNum(r) {
+  r = String(r).trim().toUpperCase();
+  if (/^\d+$/.test(r)) return Number(r);
+  const m = r.match(/^([A-Z])\1?$/), i = m ? ROWS.indexOf(m[1]) : -1;
+  return i < 0 ? null : i + 1 + (r.length === 2 ? ROWS.length : 0);
+}
+const isSro = ([, section, , group]) => section === "SRO" || group === "Standing Room Only";
+function isPreferred([, section, row]) {
+  if (!/^\d+$/.test(section)) return false;
+  const s = Number(section), n = rowNum(row);
+  return n != null && ((s >= 105 && s <= 125 && n <= 20) || (s >= 200 && s < 400 && n <= 2));
+}
+// latest.json rows are price-sorted, so the first match is the cheapest.
+const lowOf = (rs) => ({ min: rs[0]?.[0] ?? null, section: rs[0]?.[1] ?? "", row: rs[0]?.[2] ?? "", count: rs.length });
 
 function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch { return null; } }
 const qp = new URLSearchParams(location.search);
@@ -180,7 +211,7 @@ async function load() {
     const r = await fetch(u + "?t=" + Date.now(), { cache: "no-store" });
     if (!r.ok) return;
     const d = await r.json();
-    if (d?.t && (!L || d.t > L.t)) { L = d; if (H) renderSections(); }
+    if (d?.t && (!L || d.t > L.t)) { L = d; if (H) { renderStrips(); renderSections(); } }
   }));
   await Promise.allSettled(sources("history.json").map(async (u) => {
     const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 8000);
@@ -212,22 +243,61 @@ function delta(cur, ref, label, money) {
   return `<span class="${good ? "down" : "up"}">${d < 0 ? "▼" : "▲"}${money ? fmt$(Math.abs(d)) : Math.abs(d)} ${label}</span>`;
 }
 
-function renderStrip(q) {
-  const R = H.readings, n = R.length, cur = R[n - 1], base = R[0], top = cur[q].top?.[0];
-  const el = $("s-" + q);
-  el.className = "srow" + (cur[q].min != null && cur[q].min <= MAX ? " buy" : "");
+// Value of a seat-class summary field in a history reading (null for readings taken before it was recorded).
+const sval = (r, q, sub, k) => r?.[q]?.[sub]?.[k] ?? null;
+function trend(q, sub, cur) {
+  const R = H.readings.filter((r) => r[q]?.[sub]), n = R.length;
+  if (!n) return `<div class="snote">Trend starts with the next reading.</div>`;
+  // Compare to readings before the current one; if history already holds the latest.json reading, skip it.
+  const prev = R.at(-1).t === L?.t ? R.slice(0, -1) : R;
+  const t = (k) => avg(prev.slice(-3).map((r) => sval(r, q, sub, k)).filter((x) => x != null));
+  return `<div class="smeta">Low ${delta(cur.min, sval(R[0], q, sub, "min"), "base", true)} · ${delta(cur.min, prev.length ? t("min") : null, "trail", true)}</div>
+    <div class="smeta"><b>${cur.count}</b> listed ${delta(cur.count, sval(R[0], q, sub, "count"), "base", false)} · ${delta(cur.count, prev.length ? t("count") : null, "trail", false)}</div>`;
+}
+function stripRow(id, label, color, q, sub, cur, note = "") {
+  const el = $(id);
+  el.className = "srow" + (cur.min != null && cur.min <= MAX ? " buy" : "");
   el.innerHTML = `
     <div class="sline">
-      <span class="sname"><span class="dot" style="background:${C[q]}"></span>${LABEL[q]}</span>
-      <span class="sprice">${fmt$(cur[q].min)}</span>
-      <span class="swhere">${top ? `Sec ${top.section} · Row ${top.row}` : "no listings"}</span>
-    </div>
-    <div class="smeta">Low ${delta(cur[q].min, base[q].min, "base", true)} · ${delta(cur[q].min, trailing(R, n - 1, q, "min"), "trail", true)}</div>
-    <div class="smeta"><b>${cur[q].count}</b> listed ${delta(cur[q].count, base[q].count, "base", false)} · ${delta(cur[q].count, trailing(R, n - 1, q, "count"), "trail", false)}</div>`;
+      <span class="sname"><span class="dot" style="background:${color}"></span>${label}</span>
+      <span class="sprice">${fmt$(cur.min)}</span>
+      <span class="swhere">${cur.min != null ? `Sec ${cur.section} · Row ${cur.row}` : "no listings"}</span>
+    </div>${trend(q, sub, cur)}${note}`;
+}
+// Current values come from latest.json (every listing); ▲/▼ trends from history.json.
+function renderStrips() {
+  if (!L) { $("s-pref").innerHTML = `<div class="sub">Seat breakdown loads with the latest listings…</div>`; return; }
+  const seated = (q) => L[q].filter((r) => !isSro(r));
+  stripRow("s-pref", "★ Preferred · 4 together", C.pref, "q4", "pref", lowOf(L.q4.filter(isPreferred)),
+    `<div class="snote">Sec 105–125 rows A–V · 200s/300s rows A–B · any price</div>`);
+  stripRow("s-seat4", "Seated · 4 together", C.q4, "q4", "seated", lowOf(seated("q4")));
+  stripRow("s-seat2", "Seated · Pairs", C.q2, "q2", "seated", lowOf(seated("q2")));
+  const s4 = lowOf(L.q4.filter(isSro)), s2 = lowOf(L.q2.filter(isSro)), el = $("s-sro");
+  el.className = "srow small" + ([s4.min, s2.min].some((v) => v != null && v <= MAX) ? " buy" : "");
+  el.innerHTML = `
+    <div class="sline">
+      <span class="sname">Standing room</span>
+      <span class="sprice">${fmt$(s4.min)}</span><span class="sro2">4 together (${s4.count})</span>
+      <span class="sprice">${fmt$(s2.min)}</span><span class="sro2">pairs (${s2.count})</span>
+    </div>`;
+}
+
+// Cheapest preferred 4-together listings regardless of MAX.
+function renderPref() {
+  const el = $("t-pref");
+  if (!L) { el.innerHTML = ""; return; }
+  const rows = L.q4.filter(isPreferred);
+  if (!rows.length) { el.innerHTML = `<tr><td class="none">No preferred 4-together listings right now.</td></tr>`; return; }
+  const shown = rows.slice(0, 8);
+  el.innerHTML = `<tr><th>Price</th><th>Section</th><th>Row</th></tr>` +
+    shown.map(([price, section, row, group]) => `<tr><td${price <= MAX ? ` class="hit"` : ""}><span class="p">${fmt$(price)}</span></td>` +
+      `<td class="lvname">${section}<span class="sr">${group || ""}</span></td><td>${row}</td></tr>`).join("") +
+    `<tr><td colspan="3" class="sub">${rows.length} preferred listing${rows.length > 1 ? "s" : ""}${rows.length > shown.length ? ` · cheapest ${shown.length} shown` : ""}</td></tr>`;
 }
 
 // Best (cheapest) listing at or under MAX in every section, from latest.json's full listing set.
 function renderSections() {
+  renderPref();
   const el = $("t-sec");
   $("sec-title").textContent = `Best by section at or under ${fmt$(MAX)}`;
   if (!L) { el.innerHTML = `<tr><td class="sub">Section list loads with the next reading.</td></tr>`; return; }
@@ -293,8 +363,11 @@ function priceDatasets(q) {
   const R = H.readings, xs = R.map((r) => Date.parse(r.t));
   const s = (k) => R.map((r, i) => ({ x: xs[i], y: val(r, q, k) }));
   const trail = R.map((r, i) => ({ x: xs[i], y: i ? trailing(R, i, q, "min") : null }));
+  const sub = (k, color, label) => R.some((r) => r[q]?.[k]) ? [line(label, R.map((r, i) => ({ x: xs[i], y: sval(r, q, k, "min") })), color, { borderWidth: 2.5, spanGaps: false })] : [];
   return [
-    line("Low", s("min"), C[q], { borderWidth: 3, pointRadius: R.length < 3 ? 4 : 0 }),
+    ...(q === "q4" ? sub("pref", C.pref, "Preferred low") : []),
+    ...sub("seated", C.seat, "Seated low"),
+    line("Low (incl. SRO)", s("min"), C[q], { borderWidth: 3, pointRadius: R.length < 3 ? 4 : 0 }),
     line("25th pct", s("p25"), alpha(C[q], 0.7), { borderDash: [] , borderWidth: 2 }),
     line("Median", s("median"), alpha(C[q], 0.4), { borderWidth: 2 }),
     hline("Baseline low", val(R[0], q, "min"), xs, C.text2, { borderDash: [6, 5], borderWidth: 1.5 }),
@@ -324,7 +397,7 @@ function drawChart(id, datasets, money) {
 function render() {
   if (!H?.readings?.length) { renderFresh(); return; }
   renderFresh();
-  for (const q of ["q4", "q2"]) renderStrip(q);
+  renderStrips();
   renderSections();
   drawChart("c-q4", priceDatasets("q4"), true);
   drawChart("c-q2", priceDatasets("q2"), true);
