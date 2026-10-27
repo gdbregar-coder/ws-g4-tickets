@@ -1,0 +1,28 @@
+name: pages
+# Deploys the site on every push to main. GitHub's built-in Pages build takes ~2 min and a
+# newer push cancels the one in progress, so with a reading pushed every minute it never
+# finished. Here a running deploy is never cancelled; only the newest waiting push deploys next.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: deploy
+        uses: actions/deploy-pages@v4
