@@ -88,6 +88,9 @@
   table.lv .more { font-size: 13px; color: var(--text-2); display: block; }
   table.lv td.none { color: var(--muted); }
   table.lv tr.dropped td:first-child { box-shadow: inset 4px 0 0 var(--good); }
+  table.lv tr.rose td:first-child { box-shadow: inset 4px 0 0 var(--bad); }
+  table.lv tr.arrived td:first-child { box-shadow: inset 4px 0 0 var(--pref); }
+  table.lv .tag.rise { color: var(--bad); }
   table.lv .tag { font-size: 13px; font-weight: 700; display: block; }
   table.lv .tag.drop { color: var(--good); }
   table.lv .tag.new { color: var(--pref); }
@@ -293,20 +296,27 @@ function renderPref() {
   const rows = L.q4.filter(isPreferred);
   if (!rows.length) { el.innerHTML = `<tr><td class="none">No preferred 4-together listings right now.</td></tr>`; return; }
   const shown = rows.slice(0, 8);
-  // Last 5 checks before the current one: highest price seen per seat (section+row); unseen seats are new.
+  // Last 5 checks before the current one: each seat's (section+row) cheapest price the first time it appears
+  // in that window. Change = now vs then; seats not in any of those checks are new.
   const past = H.readings.filter((r) => r.q4?.prefList && r.t < L.t).slice(-5);
-  const high = new Map(), key = (s, r) => `${s}|${r}`;
-  for (const r of past) for (const [p, s, row] of r.q4.prefList) high.set(key(s, row), Math.max(high.get(key(s, row)) ?? 0, p));
+  const first = new Map(), key = (s, r) => `${s}|${r}`;
+  for (const r of past) {
+    const lows = new Map();
+    for (const [p, s, row] of r.q4.prefList) lows.set(key(s, row), Math.min(lows.get(key(s, row)) ?? Infinity, p));
+    for (const [k, p] of lows) if (!first.has(k)) first.set(k, p);
+  }
+  const span = `last ${past.length} check${past.length > 1 ? "s" : ""}`;
   const tag = (price, section, row) => {
-    const k = key(section, row), hi = high.get(k);
-    if (hi > price) return { cls: "dropped", html: `<span class="tag drop">▼${fmt$(hi - price)} last ${past.length} checks</span>` };
-    if (past.length >= 2 && hi == null) return { cls: "", html: `<span class="tag new">new</span>` };
+    const was = first.get(key(section, row));
+    if (was == null) return past.length ? { cls: "arrived", html: `<span class="tag new">new · ${span}</span>` } : { cls: "", html: "" };
+    if (price < was) return { cls: "dropped", html: `<span class="tag drop">▼${fmt$(was - price)} ${span}</span>` };
+    if (price > was) return { cls: "rose", html: `<span class="tag rise">▲${fmt$(price - was)} ${span}</span>` };
     return { cls: "", html: "" };
   };
   el.innerHTML = `<tr><th>Price</th><th>Section</th><th>Row</th></tr>` +
     shown.map(([price, section, row, group]) => { const t = tag(price, section, row); return `<tr class="${t.cls}"><td${price <= MAX ? ` class="hit"` : ""}><span class="p">${fmt$(price)}</span>${t.html}</td>` +
       `<td class="lvname">${section}<span class="sr">${group || ""}</span></td><td>${row}</td></tr>`; }).join("") +
-    `<tr><td colspan="3" class="sub">${rows.length} preferred listing${rows.length > 1 ? "s" : ""}${rows.length > shown.length ? ` · cheapest ${shown.length} shown` : ""}${past.length ? ` · ▼ = cheaper than its high in the last ${past.length} checks` : " · price drops show after the next check"}</td></tr>`;
+    `<tr><td colspan="3" class="sub">${rows.length} preferred listing${rows.length > 1 ? "s" : ""}${rows.length > shown.length ? ` · cheapest ${shown.length} shown` : ""}${past.length ? ` · ▼ cheaper · ▲ pricier · new = arrived, vs. the ${span}` : " · changes show after the next check"}</td></tr>`;
 }
 
 // Best (cheapest) listing at or under MAX in every section, from latest.json's full listing set.
