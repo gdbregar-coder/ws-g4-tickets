@@ -201,7 +201,7 @@ async function load() {
     } finally { clearTimeout(timer); }
   }));
   if (!got) { $("err").textContent = "Couldn't reach data (no signal?) — showing last loaded, will retry."; renderFresh(); return; }
-  $("checked").textContent = "Checked " + new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit" }) + " · new readings every " + (Date.now() >= Date.parse("2026-10-27T22:30:00Z") ? 5 : 10) + " min";
+  $("checked").textContent = "Checked " + new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit", timeZone: "America/New_York" }) + " ET · new readings every " + (Date.now() >= Date.parse("2026-10-27T22:30:00Z") ? 5 : 10) + " min";
   render();
 }
 
