@@ -139,7 +139,7 @@
   <section><h2>Listing count</h2><div class="chartbox"><canvas id="c-n"></canvas></div></section>
 
   <footer>
-    Seated = everything except standing room. Preferred = Sec 105–125 rows A–V (first 20) or any 200s/300s section rows A–B (first 2);
+    Seated = everything except standing room. Preferred = Sec 105–125 rows A–V (first 20) or any 200s/300s section rows A–B (first 2), excluding Party Deck;
     rows skip I and O. Readings every 5 min. Baseline = first reading. Trailing avg = previous 3 readings.
     ▲/▼ compare the current reading to each. Read-only tracker — never buys anything.
     <span id="src"></span>
@@ -165,8 +165,8 @@ function rowNum(r) {
   return i < 0 ? null : i + 1 + (r.length === 2 ? ROWS.length : 0);
 }
 const isSro = ([, section, , group]) => section === "SRO" || group === "Standing Room Only";
-function isPreferred([, section, row]) {
-  if (!/^\d+$/.test(section)) return false;
+function isPreferred([, section, row, group]) {
+  if (!/^\d+$/.test(section) || group === "Party Deck") return false;
   const s = Number(section), n = rowNum(row);
   return n != null && ((s >= 105 && s <= 125 && n <= 20) || (s >= 200 && s < 400 && n <= 2));
 }
@@ -269,7 +269,7 @@ function renderStrips() {
   if (!L) { $("s-pref").innerHTML = `<div class="sub">Seat breakdown loads with the latest listings…</div>`; return; }
   const seated = (q) => L[q].filter((r) => !isSro(r));
   stripRow("s-pref", "★ Preferred · 4 together", C.pref, "q4", "pref", lowOf(L.q4.filter(isPreferred)),
-    `<div class="snote">Sec 105–125 rows A–V · 200s/300s rows A–B · any price</div>`);
+    `<div class="snote">Sec 105–125 rows A–V · 200s/300s rows A–B · no Party Deck · any price</div>`);
   stripRow("s-seat4", "Seated · 4 together", C.q4, "q4", "seated", lowOf(seated("q4")));
   stripRow("s-seat2", "Seated · Pairs", C.q2, "q2", "seated", lowOf(seated("q2")));
   const s4 = lowOf(L.q4.filter(isSro)), s2 = lowOf(L.q2.filter(isSro)), el = $("s-sro");

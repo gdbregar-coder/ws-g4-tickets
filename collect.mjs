@@ -20,7 +20,7 @@ const ALERT_UNDER = Number(process.env.ALERT_UNDER || 1000); // $/ticket, prefer
 const ALERT = new URL("./alert.json", import.meta.url);     // listings already alerted on + issue number
 
 // Seat classes. Rows are letters skipping I and O (A..Z then AA..ZZ) or plain numbers.
-// Preferred = Sec 105-125 rows 1-20 (A-V), or any 200s/300s section rows 1-2 (A-B). Mirrored in index.html.
+// Preferred = Sec 105-125 rows 1-20 (A-V), or any 200s/300s section rows 1-2 (A-B), excluding Party Deck. Mirrored in index.html.
 const ROWS = "ABCDEFGHJKLMNPQRSTUVWXYZ";
 function rowNum(r) {
   r = String(r).trim().toUpperCase();
@@ -30,7 +30,7 @@ function rowNum(r) {
 }
 const isSro = (r) => r.section === "SRO" || r.group === "Standing Room Only";
 function isPreferred(r) {
-  if (!/^\d+$/.test(r.section)) return false;
+  if (!/^\d+$/.test(r.section) || r.group === "Party Deck") return false;
   const s = Number(r.section), n = rowNum(r.row);
   return n != null && ((s >= 105 && s <= 125 && n <= 20) || (s >= 200 && s < 400 && n <= 2));
 }
