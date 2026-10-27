@@ -133,13 +133,19 @@ async function alert(latest) {
   } catch (e) { console.error("alert failed:", e.message); }
 }
 
+// Pushes made with the Actions token don't fire push workflows, so start the site deploy (pages.yml) ourselves.
+function deploy() {
+  try { execSync("gh workflow run pages.yml --ref main", { stdio: "inherit" }); }
+  catch (e) { console.error("deploy trigger failed:", e.message); }
+}
+
 function publish(reading) {
   if (!process.env.GITHUB_ACTIONS) return;
   const sh = (c) => execSync(c, { stdio: "inherit" });
   sh(`git add history.json latest.json${existsSync(ALERT) ? " alert.json" : ""}`);
   execSync("git commit -q -F -", { input: `reading ${reading.t} q4 low $${reading.q4.min} q2 low $${reading.q2.min}\n`, stdio: ["pipe", "inherit", "inherit"] });
   for (let i = 0; i < 4; i++) {
-    try { sh("git pull -q --rebase origin main && git push -q origin HEAD:main"); return; }
+    try { sh("git pull -q --rebase origin main && git push -q origin HEAD:main"); deploy(); return; }
     catch { execSync("sleep 5"); }
   }
   throw new Error("push failed");
