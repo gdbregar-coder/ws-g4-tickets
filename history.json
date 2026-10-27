@@ -28987,7 +28987,466 @@
      ]
     ]
    }
+  },
+  {
+   "t": "2026-10-27T18:14:03.051Z",
+   "q2": {
+    "count": 246,
+    "min": 718,
+    "p25": 1144,
+    "median": 1779,
+    "top": [
+     {
+      "price": 718,
+      "section": "SRO",
+      "row": "GA",
+      "group": "Standing Room Only"
+     },
+     {
+      "price": 843,
+      "section": "314–322",
+      "row": "TBD",
+      "group": "Section"
+     },
+     {
+      "price": 846,
+      "section": "353",
+      "row": "F",
+      "group": "Party Deck"
+     },
+     {
+      "price": 886,
+      "section": "341",
+      "row": "B",
+      "group": "Party Deck"
+     },
+     {
+      "price": 888,
+      "section": "304",
+      "row": "BB",
+      "group": "Upper Deck"
+     }
+    ],
+    "levels": {
+     "Standing Room Only": {
+      "min": 718,
+      "section": "SRO",
+      "row": "GA",
+      "count": 1
+     },
+     "Section": {
+      "min": 843,
+      "section": "314–322",
+      "row": "TBD",
+      "count": 1
+     },
+     "Party Deck": {
+      "min": 846,
+      "section": "353",
+      "row": "F",
+      "count": 6
+     },
+     "Upper Deck": {
+      "min": 888,
+      "section": "304",
+      "row": "BB",
+      "count": 59
+     },
+     "Baseline Box": {
+      "min": 939,
+      "section": "132",
+      "row": "SS",
+      "count": 29
+     },
+     "Outfield": {
+      "min": 1009,
+      "section": "147",
+      "row": "HH",
+      "count": 34
+     },
+     "Press Level": {
+      "min": 1049,
+      "section": "217",
+      "row": "D",
+      "count": 13
+     },
+     "Infield": {
+      "min": 1059,
+      "section": "130",
+      "row": "UU",
+      "count": 103
+     }
+    },
+    "seated": {
+     "min": 843,
+     "section": "314–322",
+     "row": "TBD",
+     "count": 245
+    },
+    "sro": {
+     "min": 718,
+     "section": "SRO",
+     "row": "GA",
+     "count": 1
+    },
+    "pref": {
+     "min": 1256,
+     "section": "319",
+     "row": "B",
+     "count": 40
+    },
+    "prefList": [
+     [
+      1256,
+      "319",
+      "B"
+     ],
+     [
+      1625,
+      "320",
+      "A"
+     ],
+     [
+      1731,
+      "316",
+      "A"
+     ],
+     [
+      1806,
+      "124",
+      "L"
+     ],
+     [
+      1857,
+      "220",
+      "A"
+     ],
+     [
+      2189,
+      "120",
+      "P"
+     ],
+     [
+      2195,
+      "120",
+      "J"
+     ],
+     [
+      2242,
+      "208",
+      "B"
+     ],
+     [
+      2244,
+      "119",
+      "N"
+     ],
+     [
+      2305,
+      "112",
+      "S"
+     ],
+     [
+      2339,
+      "106",
+      "U"
+     ],
+     [
+      2342,
+      "108",
+      "T"
+     ],
+     [
+      2404,
+      "118",
+      "M"
+     ],
+     [
+      2461,
+      "124",
+      "T"
+     ],
+     [
+      2595,
+      "122",
+      "S"
+     ],
+     [
+      2595,
+      "116",
+      "L"
+     ],
+     [
+      2668,
+      "118",
+      "K"
+     ],
+     [
+      2672,
+      "122",
+      "G"
+     ],
+     [
+      2801,
+      "122",
+      "N"
+     ],
+     [
+      3242,
+      "121",
+      "P"
+     ],
+     [
+      3402,
+      "301",
+      "A"
+     ],
+     [
+      3433,
+      "117",
+      "Q"
+     ],
+     [
+      3504,
+      "124",
+      "C"
+     ],
+     [
+      3769,
+      "109",
+      "U"
+     ],
+     [
+      4049,
+      "121",
+      "K"
+     ],
+     [
+      4371,
+      "123",
+      "S"
+     ],
+     [
+      4371,
+      "125",
+      "F"
+     ],
+     [
+      4534,
+      "114",
+      "M"
+     ],
+     [
+      5179,
+      "110",
+      "M"
+     ],
+     [
+      5181,
+      "123",
+      "E"
+     ],
+     [
+      6213,
+      "111",
+      "N"
+     ],
+     [
+      6410,
+      "113",
+      "P"
+     ],
+     [
+      7595,
+      "105",
+      "U"
+     ],
+     [
+      7825,
+      "116",
+      "S"
+     ],
+     [
+      8746,
+      "115",
+      "P"
+     ],
+     [
+      9782,
+      "109",
+      "M"
+     ],
+     [
+      10588,
+      "112",
+      "N"
+     ],
+     [
+      11164,
+      "119",
+      "J"
+     ],
+     [
+      11967,
+      "108",
+      "G"
+     ],
+     [
+      20206,
+      "108",
+      "D"
+     ]
+    ]
+   },
+   "q4": {
+    "count": 95,
+    "min": 718,
+    "p25": 1059,
+    "median": 1332,
+    "top": [
+     {
+      "price": 718,
+      "section": "SRO",
+      "row": "GA",
+      "group": "Standing Room Only"
+     },
+     {
+      "price": 843,
+      "section": "314–322",
+      "row": "TBD",
+      "group": "Section"
+     },
+     {
+      "price": 846,
+      "section": "353",
+      "row": "F",
+      "group": "Party Deck"
+     },
+     {
+      "price": 886,
+      "section": "341",
+      "row": "B",
+      "group": "Party Deck"
+     },
+     {
+      "price": 914,
+      "section": "322",
+      "row": "H",
+      "group": "Upper Deck"
+     }
+    ],
+    "levels": {
+     "Standing Room Only": {
+      "min": 718,
+      "section": "SRO",
+      "row": "GA",
+      "count": 1
+     },
+     "Section": {
+      "min": 843,
+      "section": "314–322",
+      "row": "TBD",
+      "count": 1
+     },
+     "Party Deck": {
+      "min": 846,
+      "section": "353",
+      "row": "F",
+      "count": 5
+     },
+     "Upper Deck": {
+      "min": 914,
+      "section": "322",
+      "row": "H",
+      "count": 14
+     },
+     "Baseline Box": {
+      "min": 996,
+      "section": "132",
+      "row": "WW",
+      "count": 16
+     },
+     "Outfield": {
+      "min": 1015,
+      "section": "148",
+      "row": "DD",
+      "count": 20
+     },
+     "Press Level": {
+      "min": 1049,
+      "section": "217",
+      "row": "D",
+      "count": 4
+     },
+     "Infield": {
+      "min": 1286,
+      "section": "128",
+      "row": "SS",
+      "count": 34
+     }
+    },
+    "seated": {
+     "min": 843,
+     "section": "314–322",
+     "row": "TBD",
+     "count": 94
+    },
+    "sro": {
+     "min": 718,
+     "section": "SRO",
+     "row": "GA",
+     "count": 1
+    },
+    "pref": {
+     "min": 1256,
+     "section": "319",
+     "row": "B",
+     "count": 8
+    },
+    "prefList": [
+     [
+      1256,
+      "319",
+      "B"
+     ],
+     [
+      2191,
+      "120",
+      "L"
+     ],
+     [
+      2310,
+      "120",
+      "F"
+     ],
+     [
+      2545,
+      "116",
+      "M"
+     ],
+     [
+      3160,
+      "124",
+      "N"
+     ],
+     [
+      3433,
+      "117",
+      "Q"
+     ],
+     [
+      4231,
+      "208",
+      "B"
+     ],
+     [
+      6410,
+      "113",
+      "P"
+     ]
+    ]
+   }
   }
  ],
- "updated": "2026-10-27T18:13:03.155Z"
+ "updated": "2026-10-27T18:14:03.051Z"
 }
