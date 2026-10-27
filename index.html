@@ -157,14 +157,22 @@ function sources() {
   return s;
 }
 let H = null, lastFetchOk = 0;
+const newer = (a, b) => !b || a.readings.length > b.readings.length || (a.readings.length === b.readings.length && String(a.updated) > String(b.updated));
+// Render as soon as any source answers (weak cell signal), then upgrade if another is newer.
 async function load() {
-  const results = await Promise.allSettled(sources().map((u) =>
-    fetch(u + (u.includes("?") ? "&" : "?") + "t=" + Date.now(), { cache: "no-store" }).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })));
-  const ok = results.filter((r) => r.status === "fulfilled" && r.value?.readings).map((r) => r.value);
-  if (!ok.length) { $("err").textContent = "Couldn't reach data (no signal?) — will retry."; renderFresh(); return; }
-  ok.sort((a, b) => b.readings.length - a.readings.length || String(b.updated).localeCompare(String(a.updated)));
-  H = ok[0]; lastFetchOk = Date.now(); $("err").textContent = "";
-  render();
+  let got = 0;
+  await Promise.allSettled(sources().map(async (u) => {
+    const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 8000);
+    try {
+      const r = await fetch(u + (u.includes("?") ? "&" : "?") + "t=" + Date.now(), { cache: "no-store", signal: ctl.signal });
+      if (!r.ok) throw new Error(r.status);
+      const d = await r.json();
+      if (!d?.readings?.length) return;
+      got++; lastFetchOk = Date.now(); $("err").textContent = "";
+      if (newer(d, H)) { H = d; render(); }
+    } finally { clearTimeout(timer); }
+  }));
+  if (!got) { $("err").textContent = "Couldn't reach data (no signal?) — showing last loaded, will retry."; renderFresh(); }
 }
 
 const avg = (a) => a.length ? a.reduce((s, x) => s + x, 0) / a.length : null;
