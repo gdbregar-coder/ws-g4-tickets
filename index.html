@@ -363,9 +363,9 @@ function baseOpts(money) {
     },
     plugins: {
       legend: { labels: { color: C.text2, boxWidth: 14, boxHeight: 2, font: { size: 12 }, filter: (i) => !i.text.startsWith("_") } },
-      tooltip: { callbacks: { title: (it) => timeTick(it[0].parsed.x) + " ET", label: (c) => ` ${c.dataset.label.replace(/^_/, "")}: ${money ? fmt$(c.parsed.y) : c.parsed.y}` } },
+      tooltip: { enabled: false }, // no tap/hover pop-ups
     },
-    elements: { point: { radius: 0, hitRadius: 12, hoverRadius: 4 } },
+    elements: { point: { radius: 0, hitRadius: 0, hoverRadius: 0 } },
   };
 }
 const line = (label, data, color, extra = {}) => ({ label, data, borderColor: color, backgroundColor: color, borderWidth: 2, tension: 0, spanGaps: true, ...extra });
