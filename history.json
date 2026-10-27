@@ -174163,7 +174163,636 @@
      ]
     ]
    }
+  },
+  {
+   "t": "2026-10-27T21:48:02.810Z",
+   "q1": {
+    "count": 131,
+    "min": 661,
+    "p25": 1506,
+    "median": 2648,
+    "top": [
+     {
+      "price": 661,
+      "section": "SRO",
+      "row": "GA",
+      "group": "Standing Room Only"
+     },
+     {
+      "price": 847,
+      "section": "353",
+      "row": "D",
+      "group": "Party Deck"
+     },
+     {
+      "price": 882,
+      "section": "304",
+      "row": "F",
+      "group": "Upper Deck"
+     },
+     {
+      "price": 902,
+      "section": "300",
+      "row": "DD",
+      "group": "Upper Deck"
+     },
+     {
+      "price": 903,
+      "section": "318",
+      "row": "P",
+      "group": "Upper Deck"
+     }
+    ],
+    "levels": {
+     "Standing Room Only": {
+      "min": 661,
+      "section": "SRO",
+      "row": "GA",
+      "count": 1
+     },
+     "Party Deck": {
+      "min": 847,
+      "section": "353",
+      "row": "D",
+      "count": 3
+     },
+     "Upper Deck": {
+      "min": 882,
+      "section": "304",
+      "row": "F",
+      "count": 28
+     },
+     "Outfield": {
+      "min": 950,
+      "section": "139",
+      "row": "BB",
+      "count": 20
+     },
+     "Baseline Box": {
+      "min": 999,
+      "section": "132",
+      "row": "UU",
+      "count": 12
+     },
+     "Press Level": {
+      "min": 1028,
+      "section": "219",
+      "row": "E",
+      "count": 9
+     },
+     "Infield": {
+      "min": 1493,
+      "section": "123",
+      "row": "XX",
+      "count": 58
+     }
+    },
+    "seated": {
+     "min": 882,
+     "section": "304",
+     "row": "F",
+     "count": 126
+    },
+    "sro": {
+     "min": 661,
+     "section": "SRO",
+     "row": "GA",
+     "count": 1
+    },
+    "pref": {
+     "min": 1056,
+     "section": "319",
+     "row": "B",
+     "count": 32
+    },
+    "prefList": [
+     [
+      1056,
+      "319",
+      "B"
+     ],
+     [
+      1700,
+      "205",
+      "B"
+     ],
+     [
+      2032,
+      "120",
+      "M"
+     ],
+     [
+      2477,
+      "123",
+      "E"
+     ],
+     [
+      2648,
+      "222",
+      "C"
+     ],
+     [
+      2743,
+      "220",
+      "B"
+     ],
+     [
+      3669,
+      "109",
+      "U"
+     ],
+     [
+      3693,
+      "122",
+      "Y"
+     ],
+     [
+      3760,
+      "124",
+      "N"
+     ],
+     [
+      3884,
+      "108",
+      "T"
+     ],
+     [
+      3947,
+      "122",
+      "N"
+     ],
+     [
+      3972,
+      "113",
+      "W"
+     ],
+     [
+      4126,
+      "120",
+      "Y"
+     ],
+     [
+      4175,
+      "126",
+      "B"
+     ],
+     [
+      4231,
+      "208",
+      "B"
+     ],
+     [
+      4235,
+      "106",
+      "N"
+     ],
+     [
+      4453,
+      "116",
+      "T"
+     ],
+     [
+      4584,
+      "124",
+      "D"
+     ],
+     [
+      4753,
+      "120",
+      "F"
+     ],
+     [
+      5314,
+      "118",
+      "M"
+     ],
+     [
+      5455,
+      "116",
+      "N"
+     ],
+     [
+      5709,
+      "112",
+      "S"
+     ],
+     [
+      6240,
+      "112",
+      "W"
+     ],
+     [
+      6256,
+      "301",
+      "A"
+     ],
+     [
+      6949,
+      "121",
+      "K"
+     ],
+     [
+      7201,
+      "110",
+      "M"
+     ],
+     [
+      7505,
+      "121",
+      "W"
+     ],
+     [
+      9602,
+      "301",
+      "C"
+     ],
+     [
+      20544,
+      "108",
+      "G"
+     ],
+     [
+      33302,
+      "103",
+      "F"
+     ],
+     [
+      34692,
+      "108",
+      "D"
+     ],
+     [
+      44401,
+      "111",
+      "K"
+     ]
+    ]
+   },
+   "q2": {
+    "count": 143,
+    "min": 661,
+    "p25": 1068,
+    "median": 1505,
+    "top": [
+     {
+      "price": 661,
+      "section": "SRO",
+      "row": "GA",
+      "group": "Standing Room Only"
+     },
+     {
+      "price": 857,
+      "section": "353",
+      "row": "G",
+      "group": "Party Deck"
+     },
+     {
+      "price": 886,
+      "section": "319",
+      "row": "V",
+      "group": "Upper Deck"
+     },
+     {
+      "price": 896,
+      "section": "310",
+      "row": "JJ",
+      "group": "Upper Deck"
+     },
+     {
+      "price": 896,
+      "section": "132",
+      "row": "WW",
+      "group": "Baseline Box"
+     }
+    ],
+    "levels": {
+     "Standing Room Only": {
+      "min": 661,
+      "section": "SRO",
+      "row": "GA",
+      "count": 1
+     },
+     "Party Deck": {
+      "min": 857,
+      "section": "353",
+      "row": "G",
+      "count": 2
+     },
+     "Upper Deck": {
+      "min": 886,
+      "section": "319",
+      "row": "V",
+      "count": 34
+     },
+     "Baseline Box": {
+      "min": 896,
+      "section": "132",
+      "row": "WW",
+      "count": 15
+     },
+     "Outfield": {
+      "min": 931,
+      "section": "147",
+      "row": "HH",
+      "count": 18
+     },
+     "Press Level": {
+      "min": 980,
+      "section": "222",
+      "row": "C",
+      "count": 8
+     },
+     "Infield": {
+      "min": 1187,
+      "section": "128",
+      "row": "HH",
+      "count": 65
+     }
+    },
+    "seated": {
+     "min": 886,
+     "section": "319",
+     "row": "V",
+     "count": 138
+    },
+    "sro": {
+     "min": 661,
+     "section": "SRO",
+     "row": "GA",
+     "count": 1
+    },
+    "pref": {
+     "min": 980,
+     "section": "222",
+     "row": "C",
+     "count": 29
+    },
+    "prefList": [
+     [
+      980,
+      "222",
+      "C"
+     ],
+     [
+      1107,
+      "319",
+      "B"
+     ],
+     [
+      1505,
+      "122",
+      "Y"
+     ],
+     [
+      1557,
+      "124",
+      "L"
+     ],
+     [
+      1585,
+      "122",
+      "P"
+     ],
+     [
+      1681,
+      "120",
+      "Y"
+     ],
+     [
+      1848,
+      "120",
+      "J"
+     ],
+     [
+      1999,
+      "120",
+      "N"
+     ],
+     [
+      2067,
+      "126",
+      "B"
+     ],
+     [
+      2167,
+      "118",
+      "M"
+     ],
+     [
+      2225,
+      "116",
+      "N"
+     ],
+     [
+      2289,
+      "124",
+      "D"
+     ],
+     [
+      2305,
+      "112",
+      "S"
+     ],
+     [
+      2586,
+      "110",
+      "M"
+     ],
+     [
+      2595,
+      "116",
+      "T"
+     ],
+     [
+      3636,
+      "112",
+      "W"
+     ],
+     [
+      3645,
+      "301",
+      "A"
+     ],
+     [
+      3669,
+      "109",
+      "U"
+     ],
+     [
+      3884,
+      "108",
+      "T"
+     ],
+     [
+      4049,
+      "121",
+      "K"
+     ],
+     [
+      4231,
+      "208",
+      "B"
+     ],
+     [
+      4372,
+      "121",
+      "W"
+     ],
+     [
+      4665,
+      "106",
+      "M"
+     ],
+     [
+      4694,
+      "123",
+      "E"
+     ],
+     [
+      5594,
+      "301",
+      "C"
+     ],
+     [
+      11967,
+      "108",
+      "G"
+     ],
+     [
+      19398,
+      "103",
+      "F"
+     ],
+     [
+      20206,
+      "108",
+      "D"
+     ],
+     [
+      25862,
+      "111",
+      "K"
+     ]
+    ]
+   },
+   "q4": {
+    "count": 40,
+    "min": 716,
+    "p25": 964,
+    "median": 1048,
+    "top": [
+     {
+      "price": 716,
+      "section": "SRO",
+      "row": "GA",
+      "group": "Standing Room Only"
+     },
+     {
+      "price": 896,
+      "section": "132",
+      "row": "WW",
+      "group": "Baseline Box"
+     },
+     {
+      "price": 896,
+      "section": "310",
+      "row": "JJ",
+      "group": "Upper Deck"
+     },
+     {
+      "price": 903,
+      "section": "318",
+      "row": "P",
+      "group": "Upper Deck"
+     },
+     {
+      "price": 904,
+      "section": "345",
+      "row": "C",
+      "group": "Party Deck"
+     }
+    ],
+    "levels": {
+     "Standing Room Only": {
+      "min": 716,
+      "section": "SRO",
+      "row": "GA",
+      "count": 1
+     },
+     "Baseline Box": {
+      "min": 896,
+      "section": "132",
+      "row": "WW",
+      "count": 5
+     },
+     "Upper Deck": {
+      "min": 896,
+      "section": "310",
+      "row": "JJ",
+      "count": 7
+     },
+     "Party Deck": {
+      "min": 904,
+      "section": "345",
+      "row": "C",
+      "count": 1
+     },
+     "Outfield": {
+      "min": 950,
+      "section": "149",
+      "row": "EE",
+      "count": 8
+     },
+     "Press Level": {
+      "min": 1019,
+      "section": "221",
+      "row": "D",
+      "count": 4
+     },
+     "Infield": {
+      "min": 1187,
+      "section": "128",
+      "row": "HH",
+      "count": 14
+     }
+    },
+    "seated": {
+     "min": 896,
+     "section": "132",
+     "row": "WW",
+     "count": 38
+    },
+    "sro": {
+     "min": 716,
+     "section": "SRO",
+     "row": "GA",
+     "count": 1
+    },
+    "pref": {
+     "min": 1848,
+     "section": "120",
+     "row": "J",
+     "count": 3
+    },
+    "prefList": [
+     [
+      1848,
+      "120",
+      "J"
+     ],
+     [
+      2595,
+      "116",
+      "T"
+     ],
+     [
+      4231,
+      "208",
+      "B"
+     ]
+    ]
+   }
   }
  ],
- "updated": "2026-10-27T21:47:02.807Z"
+ "updated": "2026-10-27T21:48:02.810Z"
 }
