@@ -40,6 +40,11 @@
   .fresh { font-size: 22px; font-weight: 800; padding: 6px 12px; border-radius: 10px; background: var(--surface-2); white-space: nowrap; }
   .fresh.ok { color: var(--good); }
   .fresh.stale { color: var(--warn); }
+  .freshwrap { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .rbtn { font: inherit; font-size: 17px; font-weight: 700; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  .rbtn:active { background: var(--border); }
+  .rbtn:disabled { opacity: .6; }
+  .checked { width: 100%; font-size: 13px; color: var(--muted); }
   .fresh.dead { color: #fff; background: #8a1f1f; }
   .banner { display: none; margin: 14px 0 0; padding: 14px 16px; border-radius: 14px; background: var(--good-bg); border: 2px solid var(--good); color: #d9ffe8; font-size: 22px; font-weight: 800; line-height: 1.25; }
   .banner.on { display: block; }
@@ -92,7 +97,11 @@
       <div class="sub">Tropicana Field · Tue Oct 27 · 8:00 PM ET · Gametime all-in $/ticket</div>
       <div class="sub" id="countdown"></div>
     </div>
-    <div class="fresh" id="fresh">loading…</div>
+    <div class="freshwrap">
+      <div class="fresh" id="fresh">loading…</div>
+      <button class="rbtn" id="refresh-top" aria-label="Refresh now">↻ Refresh</button>
+      <div class="checked" id="checked"></div>
+    </div>
   </header>
 
   <div class="banner" id="banner"></div>
@@ -119,7 +128,7 @@
     <div class="settings">
       <label for="max"><b>MAX_PRICE</b> $/ticket</label>
       <input id="max" type="number" inputmode="numeric" min="0" step="25">
-      <button id="refresh">Refresh now</button>
+      <button class="rbtn" id="refresh">↻ Refresh now</button>
     </div>
   </section>
 
@@ -145,7 +154,18 @@ const qp = new URLSearchParams(location.search);
 let MAX = Number(qp.get("max") || store("maxPrice") || DEFAULT_MAX);
 $("max").value = MAX;
 $("max").addEventListener("change", () => { const v = Number($("max").value); if (v > 0) { MAX = v; store("maxPrice", String(v)); render(); } });
-$("refresh").addEventListener("click", () => load());
+// Manual refresh: show it's working, and say so even when no newer reading exists yet.
+async function manualRefresh() {
+  const btns = [$("refresh"), $("refresh-top")];
+  btns.forEach((b) => { b.disabled = true; b.dataset.label ??= b.textContent; b.textContent = "Refreshing…"; });
+  const before = H?.readings?.length || 0;
+  await load();
+  const after = H?.readings?.length || 0;
+  btns.forEach((b) => { b.disabled = false; b.textContent = after > before ? "✓ New data" : "✓ Up to date"; });
+  setTimeout(() => btns.forEach((b) => (b.textContent = b.dataset.label)), 2500);
+}
+$("refresh").addEventListener("click", manualRefresh);
+$("refresh-top").addEventListener("click", manualRefresh);
 
 // Data: same-origin history.json (GitHub Pages) and raw.githubusercontent.com (updates
 // without waiting for a Pages build). Whichever has the newer last reading wins.
@@ -172,7 +192,9 @@ async function load() {
       if (newer(d, H)) { H = d; render(); }
     } finally { clearTimeout(timer); }
   }));
-  if (!got) { $("err").textContent = "Couldn't reach data (no signal?) — showing last loaded, will retry."; renderFresh(); }
+  if (!got) { $("err").textContent = "Couldn't reach data (no signal?) — showing last loaded, will retry."; renderFresh(); return; }
+  $("checked").textContent = "Checked " + new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit" }) + " · new readings every " + (Date.now() >= Date.parse("2026-10-27T22:30:00Z") ? 5 : 10) + " min";
+  render();
 }
 
 const avg = (a) => a.length ? a.reduce((s, x) => s + x, 0) / a.length : null;
