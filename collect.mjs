@@ -16,6 +16,8 @@ const MAX_RUN_MIN = Number(process.env.MAX_RUN_MIN || 55);
 const FILE = new URL("./history.json", import.meta.url);
 const LATEST = new URL("./latest.json", import.meta.url); // every current listing, overwritten each poll
 const TOP_N = 5;
+const ALERT_UNDER = Number(process.env.ALERT_UNDER || 1000); // $/ticket, preferred 4-together
+const ALERT = new URL("./alert.json", import.meta.url);     // listings already alerted on + issue number
 
 // Seat classes. Rows are letters skipping I and O (A..Z then AA..ZZ) or plain numbers.
 // Preferred = Sec 105-125 rows 1-20 (A-V), or any 200s/300s section rows 1-2 (A-B). Mirrored in index.html.
@@ -99,10 +101,41 @@ function append(reading) {
   writeFileSync(FILE, JSON.stringify(h, null, 1) + "\n");
 }
 
+// Alert: a GitHub issue that @-mentions the repo owner (GitHub app push notification).
+// One issue for the day; a comment for each preferred 4-together listing under ALERT_UNDER not alerted before.
+async function gh(path, body) {
+  const res = await fetch(`https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}${path}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${process.env.GH_TOKEN}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`GitHub ${path}: HTTP ${res.status}`);
+  return res.json();
+}
+async function alert(latest) {
+  if (!process.env.GH_TOKEN || !process.env.GITHUB_REPOSITORY) return;
+  const state = existsSync(ALERT) ? JSON.parse(readFileSync(ALERT, "utf8")) : { issue: null, seen: [] };
+  const key = ([price, section, row]) => `${price}|${section}|${row}`;
+  const hits = latest.q4.filter(([price, section, row, group]) => price < ALERT_UNDER && isPreferred({ section, row, group }));
+  const fresh = hits.filter((h) => !state.seen.includes(key(h)));
+  if (!fresh.length) return;
+  const owner = process.env.GITHUB_REPOSITORY_OWNER;
+  const lines = fresh.map(([price, section, row, group]) => `- **$${price}/ticket** · Sec ${section} Row ${row} (${group}) · 4 together`).join("\n");
+  const page = `https://${owner}.github.io/${process.env.GITHUB_REPOSITORY.split("/")[1]}/`;
+  const body = `@${owner} preferred 4-together under $${ALERT_UNDER} (Gametime, ${new Date(latest.t).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" })} ET):\n\n${lines}\n\n${page}`;
+  try {
+    if (!state.issue) state.issue = (await gh("/issues", { title: `Preferred 4-together under $${ALERT_UNDER}`, body })).number;
+    else await gh(`/issues/${state.issue}/comments`, { body });
+    state.seen.push(...fresh.map(key));
+    writeFileSync(ALERT, JSON.stringify(state) + "\n");
+    console.log(`alerted: ${fresh.length} listing(s)`);
+  } catch (e) { console.error("alert failed:", e.message); }
+}
+
 function publish(reading) {
   if (!process.env.GITHUB_ACTIONS) return;
   const sh = (c) => execSync(c, { stdio: "inherit" });
-  sh("git add history.json latest.json");
+  sh(`git add history.json latest.json${existsSync(ALERT) ? " alert.json" : ""}`);
   execSync("git commit -q -F -", { input: `reading ${reading.t} q4 low $${reading.q4.min} q2 low $${reading.q2.min}\n`, stdio: ["pipe", "inherit", "inherit"] });
   for (let i = 0; i < 4; i++) {
     try { sh("git pull -q --rebase origin main && git push -q origin HEAD:main"); return; }
@@ -119,7 +152,7 @@ async function once(write) {
   const { reading: r, latest } = await poll();
   console.log(summary(r));
   if (r.q2.count === 0 && r.q4.count === 0) throw new Error("no listings returned");
-  if (write) { append(r); writeFileSync(LATEST, JSON.stringify(latest) + "\n"); publish(r); }
+  if (write) { append(r); writeFileSync(LATEST, JSON.stringify(latest) + "\n"); await alert(latest); publish(r); }
   return r;
 }
 
