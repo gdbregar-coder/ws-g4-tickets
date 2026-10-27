@@ -29,10 +29,13 @@ function rowNum(r) {
   return i < 0 ? null : i + 1 + (r.length === 2 ? ROWS.length : 0);
 }
 const isSro = (r) => r.section === "SRO" || r.group === "Standing Room Only";
+// Seated = a real assigned seat: numbered section and a normal row. Excludes Party Deck (unassigned),
+// section ranges like "314–322" with row TBD, and wheelchair rows (WCH). Mirrored in index.html.
+const isAssigned = (r) => /^\d+$/.test(r.section) && rowNum(r.row) != null && r.group !== "Party Deck";
 function isPreferred(r) {
-  if (!/^\d+$/.test(r.section) || r.group === "Party Deck") return false;
+  if (!isAssigned(r)) return false;
   const s = Number(r.section), n = rowNum(r.row);
-  return n != null && ((s >= 105 && s <= 125 && n <= 20) || (s >= 200 && s < 400 && n <= 2));
+  return (s >= 105 && s <= 125 && n <= 20) || (s >= 200 && s < 400 && n <= 2);
 }
 // Cheapest of a (price-sorted) subset.
 const low = (rs) => ({ min: rs[0]?.price ?? null, section: rs[0]?.section ?? "", row: rs[0]?.row ?? "", count: rs.length });
@@ -71,7 +74,7 @@ async function fetchQty(q) {
         levels[k].count++;
       }
       const summary = { count: rows.length, min: prices[0] ?? null, p25: pct(prices, 0.25), median: pct(prices, 0.5), top: rows.slice(0, TOP_N), levels,
-        seated: low(rows.filter((r) => !isSro(r))), sro: low(rows.filter(isSro)), pref: low(rows.filter(isPreferred)),
+        seated: low(rows.filter(isAssigned)), sro: low(rows.filter(isSro)), pref: low(rows.filter(isPreferred)),
         prefList: rows.filter(isPreferred).map((r) => [r.price, r.section, r.row]) }; // per-listing, for drop detection
       return { summary, rows };
     } catch (e) {
