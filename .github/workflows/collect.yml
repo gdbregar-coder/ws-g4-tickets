@@ -7,6 +7,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
+  actions: write
 concurrency:
   group: collector
   cancel-in-progress: false
@@ -23,3 +24,13 @@ jobs:
           git config user.name "price-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - run: node collect.mjs --loop
+      # Chain the next run ourselves so coverage doesn't depend on GitHub's cron firing
+      # (scheduled triggers are often late or skipped). Stops after first pitch.
+      - name: Start next run
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$(date -u +%s)" -lt "$(date -u -d 2026-10-28T00:00:00Z +%s)" ]; then
+            gh workflow run collect.yml --ref main -R "$GITHUB_REPOSITORY"
+          fi
