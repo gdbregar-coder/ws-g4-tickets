@@ -231139,7 +231139,326 @@
     },
     "prefList": []
    }
+  },
+  {
+   "t": "2026-10-27T23:40:02.715Z",
+   "q1": {
+    "count": 36,
+    "min": 1093,
+    "p25": 1869,
+    "median": 3449,
+    "top": [
+     {
+      "price": 1093,
+      "section": "312",
+      "row": "RR",
+      "group": "Upper Deck"
+     },
+     {
+      "price": 1204,
+      "section": "308",
+      "row": "MM",
+      "group": "Upper Deck"
+     },
+     {
+      "price": 1249,
+      "section": "SRO",
+      "row": "GA",
+      "group": "Standing Room Only"
+     },
+     {
+      "price": 1309,
+      "section": "300",
+      "row": "AA",
+      "group": "Upper Deck"
+     },
+     {
+      "price": 1319,
+      "section": "317",
+      "row": "N",
+      "group": "Upper Deck"
+     }
+    ],
+    "levels": {
+     "Upper Deck": {
+      "min": 1093,
+      "section": "312",
+      "row": "RR",
+      "count": 10
+     },
+     "Standing Room Only": {
+      "min": 1249,
+      "section": "SRO",
+      "row": "GA",
+      "count": 1
+     },
+     "Baseline Box": {
+      "min": 1353,
+      "section": "132",
+      "row": "HH",
+      "count": 2
+     },
+     "Outfield": {
+      "min": 1458,
+      "section": "140",
+      "row": "FF",
+      "count": 7
+     },
+     "Infield": {
+      "min": 1921,
+      "section": "110",
+      "row": "RR",
+      "count": 14
+     },
+     "Press Level": {
+      "min": 3622,
+      "section": "220",
+      "row": "F",
+      "count": 2
+     }
+    },
+    "seated": {
+     "min": 1093,
+     "section": "312",
+     "row": "RR",
+     "count": 35
+    },
+    "sro": {
+     "min": 1249,
+     "section": "SRO",
+     "row": "GA",
+     "count": 1
+    },
+    "pref": {
+     "min": 4204,
+     "section": "106",
+     "row": "N",
+     "count": 5
+    },
+    "prefList": [
+     [
+      4204,
+      "106",
+      "N"
+     ],
+     [
+      4399,
+      "120",
+      "Y"
+     ],
+     [
+      4696,
+      "216",
+      "B"
+     ],
+     [
+      5285,
+      "123",
+      "E"
+     ],
+     [
+      9602,
+      "301",
+      "C"
+     ]
+    ]
+   },
+   "q2": {
+    "count": 30,
+    "min": 973,
+    "p25": 1375,
+    "median": 1611,
+    "top": [
+     {
+      "price": 973,
+      "section": "320",
+      "row": "G",
+      "group": "Upper Deck"
+     },
+     {
+      "price": 1038,
+      "section": "317",
+      "row": "M",
+      "group": "Upper Deck"
+     },
+     {
+      "price": 1061,
+      "section": "317",
+      "row": "W",
+      "group": "Upper Deck"
+     },
+     {
+      "price": 1204,
+      "section": "308",
+      "row": "MM",
+      "group": "Upper Deck"
+     },
+     {
+      "price": 1333,
+      "section": "320",
+      "row": "L",
+      "group": "Upper Deck"
+     }
+    ],
+    "levels": {
+     "Upper Deck": {
+      "min": 973,
+      "section": "320",
+      "row": "G",
+      "count": 8
+     },
+     "Outfield": {
+      "min": 1349,
+      "section": "140",
+      "row": "DD",
+      "count": 6
+     },
+     "Baseline Box": {
+      "min": 1353,
+      "section": "132",
+      "row": "HH",
+      "count": 2
+     },
+     "Press Level": {
+      "min": 1480,
+      "section": "220",
+      "row": "F",
+      "count": 2
+     },
+     "Infield": {
+      "min": 1607,
+      "section": "128",
+      "row": "UU",
+      "count": 11
+     },
+     "Viva Victory Ledge": {
+      "min": 1918,
+      "section": "VIVAVICTORYLEDGE",
+      "row": "TBL2",
+      "count": 1
+     }
+    },
+    "seated": {
+     "min": 973,
+     "section": "320",
+     "row": "G",
+     "count": 29
+    },
+    "sro": {
+     "min": null,
+     "section": "",
+     "row": "",
+     "count": 0
+    },
+    "pref": {
+     "min": 1794,
+     "section": "120",
+     "row": "Y",
+     "count": 2
+    },
+    "prefList": [
+     [
+      1794,
+      "120",
+      "Y"
+     ],
+     [
+      1915,
+      "216",
+      "B"
+     ]
+    ]
+   },
+   "q4": {
+    "count": 11,
+    "min": 979,
+    "p25": 1149,
+    "median": 1353,
+    "top": [
+     {
+      "price": 979,
+      "section": "316",
+      "row": "GG",
+      "group": "Upper Deck"
+     },
+     {
+      "price": 1055,
+      "section": "317",
+      "row": "EE",
+      "group": "Upper Deck"
+     },
+     {
+      "price": 1111,
+      "section": "317",
+      "row": "M",
+      "group": "Upper Deck"
+     },
+     {
+      "price": 1186,
+      "section": "312",
+      "row": "RR",
+      "group": "Upper Deck"
+     },
+     {
+      "price": 1351,
+      "section": "320",
+      "row": "K",
+      "group": "Upper Deck"
+     }
+    ],
+    "levels": {
+     "Upper Deck": {
+      "min": 979,
+      "section": "316",
+      "row": "GG",
+      "count": 5
+     },
+     "Baseline Box": {
+      "min": 1353,
+      "section": "132",
+      "row": "HH",
+      "count": 2
+     },
+     "Outfield": {
+      "min": 1711,
+      "section": "142",
+      "row": "EE",
+      "count": 1
+     },
+     "Viva Victory Ledge": {
+      "min": 1918,
+      "section": "VIVAVICTORYLEDGE",
+      "row": "TBL2",
+      "count": 1
+     },
+     "Infield": {
+      "min": 2074,
+      "section": "119",
+      "row": "JJ",
+      "count": 2
+     }
+    },
+    "seated": {
+     "min": 979,
+     "section": "316",
+     "row": "GG",
+     "count": 10
+    },
+    "sro": {
+     "min": null,
+     "section": "",
+     "row": "",
+     "count": 0
+    },
+    "pref": {
+     "min": null,
+     "section": "",
+     "row": "",
+     "count": 0
+    },
+    "prefList": []
+   }
   }
  ],
- "updated": "2026-10-27T23:39:02.731Z"
+ "updated": "2026-10-27T23:40:02.715Z"
 }
