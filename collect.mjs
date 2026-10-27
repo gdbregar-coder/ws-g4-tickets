@@ -2,7 +2,7 @@
 //
 //   node collect.mjs --dry    one poll, print summary, write nothing (smoke test)
 //   node collect.mjs          one poll, append to history.json
-//   node collect.mjs --loop   poll every 5 min until
+//   node collect.mjs --loop   poll every minute until
 //                             first pitch or MAX_RUN_MIN elapses; commits+pushes each
 //                             reading when running in GitHub Actions.
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
@@ -38,7 +38,7 @@ function isPreferred(r) {
 const low = (rs) => ({ min: rs[0]?.price ?? null, section: rs[0]?.section ?? "", row: rs[0]?.row ?? "", count: rs.length });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const intervalAt = () => 5 * 60_000;
+const intervalAt = () => 60_000;
 
 function pct(sorted, p) {
   if (!sorted.length) return null;
@@ -164,7 +164,7 @@ async function loop() {
     const iv = intervalAt(now);
     // Due if no reading in the current wall-clock slot (slots aligned to :00/:10/... or :05).
     const slotStart = Math.floor(now / iv) * iv;
-    if (!last || Date.parse(last.t) < slotStart - 30_000) {
+    if (!last || Date.parse(last.t) < slotStart - 15_000) {
       try { await once(true); } catch (e) { console.error("poll failed:", e.message); }
     }
     const next = Math.floor(Date.now() / intervalAt(Date.now())) * intervalAt(Date.now()) + intervalAt(Date.now());

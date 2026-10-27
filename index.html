@@ -140,7 +140,7 @@
 
   <footer>
     Seated = everything except standing room. Preferred = Sec 105–125 rows A–V (first 20) or any 200s/300s section rows A–B (first 2), excluding Party Deck;
-    rows skip I and O. Readings every 5 min. Baseline = first reading. Trailing avg = previous 3 readings.
+    rows skip I and O. Readings every minute. Baseline = first reading. Trailing avg = previous 3 readings.
     ▲/▼ compare the current reading to each. Read-only tracker — never buys anything.
     <span id="src"></span>
   </footer>
@@ -226,7 +226,7 @@ async function load() {
   }));
   await latest;
   if (!got) { $("err").textContent = "Couldn't reach data (no signal?) — showing last loaded, will retry."; renderFresh(); return; }
-  $("checked").textContent = "Checked " + new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit", timeZone: "America/New_York" }) + " ET · new readings every 5 min";
+  $("checked").textContent = "Checked " + new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit", timeZone: "America/New_York" }) + " ET · new readings every minute";
   render();
 }
 
@@ -331,8 +331,7 @@ function renderFresh() {
   if (!H?.readings?.length) { el.textContent = "no data yet"; el.className = "fresh stale"; return; }
   const t = Date.parse(H.readings.at(-1).t), mins = Math.floor((Date.now() - t) / 60000);
   el.textContent = mins < 1 ? "updated just now" : `updated ${mins} min ago`;
-  const expected = 5;
-  el.className = "fresh " + (mins <= expected + 6 ? "ok" : mins <= expected * 3 ? "stale" : "dead");
+  el.className = "fresh " + (mins <= 3 ? "ok" : mins <= 10 ? "stale" : "dead");
   const left = GAME - Date.now();
   $("countdown").textContent = left > 0 ? `First pitch in ${Math.floor(left / 3600000)}h ${Math.floor(left / 60000) % 60}m · ${H.readings.length} readings` : `Game time · ${H.readings.length} readings`;
 }
@@ -405,7 +404,7 @@ function render() {
 }
 
 load();
-setInterval(load, 60_000);
+setInterval(load, 30_000);
 setInterval(renderFresh, 15_000);
 // iOS Safari pauses timers in background tabs — refresh as soon as the page is visible again.
 document.addEventListener("visibilitychange", () => { if (!document.hidden) load(); });
