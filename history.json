@@ -320,7 +320,86 @@
      }
     ]
    }
+  },
+  {
+   "t": "2026-10-27T14:00:04.171Z",
+   "q2": {
+    "count": 275,
+    "min": 871,
+    "p25": 1180,
+    "median": 1815,
+    "top": [
+     {
+      "price": 871,
+      "section": "SRO",
+      "row": "GA",
+      "group": "Standing Room Only"
+     },
+     {
+      "price": 942,
+      "section": "308",
+      "row": "LL",
+      "group": "Upper Deck"
+     },
+     {
+      "price": 985,
+      "section": "322",
+      "row": "H",
+      "group": "Upper Deck"
+     },
+     {
+      "price": 992,
+      "section": "321",
+      "row": "K",
+      "group": "Upper Deck"
+     },
+     {
+      "price": 996,
+      "section": "345",
+      "row": "E",
+      "group": "Party Deck"
+     }
+    ]
+   },
+   "q4": {
+    "count": 128,
+    "min": 871,
+    "p25": 1071,
+    "median": 1331,
+    "top": [
+     {
+      "price": 871,
+      "section": "SRO",
+      "row": "GA",
+      "group": "Standing Room Only"
+     },
+     {
+      "price": 966,
+      "section": "317",
+      "row": "DD",
+      "group": "Upper Deck"
+     },
+     {
+      "price": 985,
+      "section": "322",
+      "row": "H",
+      "group": "Upper Deck"
+     },
+     {
+      "price": 992,
+      "section": "321",
+      "row": "K",
+      "group": "Upper Deck"
+     },
+     {
+      "price": 1003,
+      "section": "353",
+      "row": "B",
+      "group": "Party Deck"
+     }
+    ]
+   }
   }
  ],
- "updated": "2026-10-27T13:50:03.169Z"
+ "updated": "2026-10-27T14:00:04.171Z"
 }
