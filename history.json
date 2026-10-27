@@ -1,0 +1,89 @@
+{
+ "event": {
+  "id": "6a6e328da480127e6660ba09",
+  "name": "World Series Game 4 · Brewers @ Rays",
+  "start": "2026-10-28T00:00:00Z"
+ },
+ "readings": [
+  {
+   "t": "2026-10-27T13:23:59.288Z",
+   "q2": {
+    "count": 281,
+    "min": 876,
+    "p25": 1184,
+    "median": 1868,
+    "top": [
+     {
+      "price": 876,
+      "section": "343",
+      "row": "B",
+      "group": "Party Deck"
+     },
+     {
+      "price": 928,
+      "section": "316",
+      "row": "P",
+      "group": "Upper Deck"
+     },
+     {
+      "price": 942,
+      "section": "308",
+      "row": "LL",
+      "group": "Upper Deck"
+     },
+     {
+      "price": 975,
+      "section": "353",
+      "row": "G",
+      "group": "Party Deck"
+     },
+     {
+      "price": 985,
+      "section": "322",
+      "row": "H",
+      "group": "Upper Deck"
+     }
+    ]
+   },
+   "q4": {
+    "count": 131,
+    "min": 889,
+    "p25": 1071,
+    "median": 1341,
+    "top": [
+     {
+      "price": 889,
+      "section": "315",
+      "row": "PP",
+      "group": "Upper Deck"
+     },
+     {
+      "price": 975,
+      "section": "353",
+      "row": "G",
+      "group": "Party Deck"
+     },
+     {
+      "price": 982,
+      "section": "317",
+      "row": "DD",
+      "group": "Upper Deck"
+     },
+     {
+      "price": 985,
+      "section": "322",
+      "row": "H",
+      "group": "Upper Deck"
+     },
+     {
+      "price": 992,
+      "section": "321",
+      "row": "K",
+      "group": "Upper Deck"
+     }
+    ]
+   }
+  }
+ ],
+ "updated": "2026-10-27T13:23:59.288Z"
+}

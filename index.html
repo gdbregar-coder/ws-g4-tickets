@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#121211">
+<title>WS Game 4 Tickets</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #121211;
+    --surface: #1a1a19;
+    --surface-2: #242422;
+    --border: #33322f;
+    --text: #f0efec;
+    --text-2: #c3c2b7;
+    --muted: #8d8c84;
+    --q4: #3987e5;
+    --q2: #d95926;
+    --good: #2fbf6a;
+    --good-bg: #0f3a22;
+    --bad: #e66767;
+    --warn: #e0a400;
+    --max: #e34948;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body {
+    font: 17px/1.35 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    -webkit-text-size-adjust: 100%;
+    font-variant-numeric: tabular-nums;
+  }
+  main { max-width: 960px; margin: 0 auto; }
+  header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+  h1 { font-size: 18px; margin: 0; font-weight: 700; }
+  .sub { color: var(--muted); font-size: 14px; }
+  .fresh { font-size: 22px; font-weight: 800; padding: 6px 12px; border-radius: 10px; background: var(--surface-2); white-space: nowrap; }
+  .fresh.ok { color: var(--good); }
+  .fresh.stale { color: var(--warn); }
+  .fresh.dead { color: #fff; background: #8a1f1f; }
+  .banner { display: none; margin: 14px 0 0; padding: 14px 16px; border-radius: 14px; background: var(--good-bg); border: 2px solid var(--good); color: #d9ffe8; font-size: 22px; font-weight: 800; line-height: 1.25; }
+  .banner.on { display: block; }
+  .banner small { display: block; font-size: 16px; font-weight: 600; color: #a8e8c2; margin-top: 4px; }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px; min-width: 0; }
+  .card .label { font-size: 15px; font-weight: 700; color: var(--text-2); display: flex; align-items: center; gap: 8px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex: none; }
+  .card .big { font-size: clamp(40px, 12vw, 64px); font-weight: 800; letter-spacing: -1px; line-height: 1.05; margin: 4px 0 2px; }
+  .card.buy { border-color: var(--good); box-shadow: inset 0 0 0 1px var(--good); }
+  .card.buy .big { color: var(--good); }
+  .card .where { font-size: 15px; color: var(--text-2); }
+  .deltas { margin-top: 8px; font-size: 15px; display: grid; gap: 2px; }
+  .up { color: var(--bad); } .down { color: var(--good); } .flat { color: var(--muted); }
+  .count { margin-top: 8px; font-size: 16px; color: var(--text-2); }
+  .count b { color: var(--text); font-size: 20px; }
+  .count .deltas { margin-top: 2px; font-size: 14px; }
+  section { margin-top: 18px; }
+  h2 { font-size: 16px; margin: 0 0 8px; color: var(--text-2); font-weight: 700; }
+  .chartbox { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 10px 8px 6px; height: 280px; position: relative; }
+  .tables { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; font-size: 17px; }
+  th, td { padding: 9px 10px; text-align: left; }
+  th { font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--border); }
+  td.p { font-weight: 800; }
+  tr + tr td { border-top: 1px solid var(--border); }
+  tr.hit td { background: var(--good-bg); color: #d9ffe8; }
+  tr.hit td.p { color: var(--good); }
+  .settings { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 12px 14px; }
+  .settings input { font: inherit; font-size: 20px; font-weight: 700; width: 120px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); }
+  .settings button { font: inherit; font-weight: 700; padding: 9px 14px; border-radius: 10px; border: 0; background: var(--surface-2); color: var(--text); }
+  .err { color: var(--bad); font-size: 14px; margin-top: 8px; }
+  footer { margin-top: 18px; color: var(--muted); font-size: 13px; }
+  footer a { color: var(--text-2); }
+  @media (max-width: 640px) {
+    .tables { grid-template-columns: 1fr; }
+    .chartbox { height: 240px; }
+  }
+  @media (max-width: 380px) {
+    .cards { gap: 8px; }
+    .card { padding: 12px 10px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>WS Game 4 · Brewers @ Rays</h1>
+      <div class="sub">Tropicana Field · Tue Oct 27 · 8:00 PM ET · Gametime all-in $/ticket</div>
+      <div class="sub" id="countdown"></div>
+    </div>
+    <div class="fresh" id="fresh">loading…</div>
+  </header>
+
+  <div class="banner" id="banner"></div>
+
+  <div class="cards">
+    <div class="card" id="card-q4"></div>
+    <div class="card" id="card-q2"></div>
+  </div>
+  <div class="err" id="err"></div>
+
+  <section>
+    <h2>Cheapest right now</h2>
+    <div class="tables">
+      <div><h2><span class="dot" style="background:var(--q4)"></span> 4 together</h2><table id="t-q4"></table></div>
+      <div><h2><span class="dot" style="background:var(--q2)"></span> Pairs</h2><table id="t-q2"></table></div>
+    </div>
+  </section>
+
+  <section><h2>4 together · $/ticket</h2><div class="chartbox"><canvas id="c-q4"></canvas></div></section>
+  <section><h2>Pairs · $/ticket</h2><div class="chartbox"><canvas id="c-q2"></canvas></div></section>
+  <section><h2>Listing count</h2><div class="chartbox"><canvas id="c-n"></canvas></div></section>
+
+  <section>
+    <div class="settings">
+      <label for="max"><b>MAX_PRICE</b> $/ticket</label>
+      <input id="max" type="number" inputmode="numeric" min="0" step="25">
+      <button id="refresh">Refresh now</button>
+    </div>
+  </section>
+
+  <footer>
+    Readings every 10 min (5 min after 6:30 PM ET). Baseline = first reading. Trailing avg = previous 3 readings.
+    ▲/▼ compare the current reading to each. Read-only tracker — never buys anything.
+    <span id="src"></span>
+  </footer>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const GAME = Date.parse("2026-10-28T00:00:00Z");
+const DEFAULT_MAX = 900;
+const $ = (id) => document.getElementById(id);
+const fmt$ = (v) => v == null ? "—" : "$" + Math.round(v).toLocaleString("en-US");
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const C = { q4: css("--q4"), q2: css("--q2"), max: css("--max"), text2: css("--text-2"), muted: css("--muted"), grid: "#2a2a28" };
+const LABEL = { q4: "4 together", q2: "Pairs" };
+
+function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch { return null; } }
+const qp = new URLSearchParams(location.search);
+let MAX = Number(qp.get("max") || store("maxPrice") || DEFAULT_MAX);
+$("max").value = MAX;
+$("max").addEventListener("change", () => { const v = Number($("max").value); if (v > 0) { MAX = v; store("maxPrice", String(v)); render(); } });
+$("refresh").addEventListener("click", () => load());
+
+// Data: same-origin history.json (GitHub Pages) and raw.githubusercontent.com (updates
+// without waiting for a Pages build). Whichever has the newer last reading wins.
+function sources() {
+  const s = ["history.json"];
+  const m = location.hostname.match(/^([^.]+)\.github\.io$/);
+  const repo = location.pathname.split("/").filter(Boolean)[0];
+  if (m && repo) s.push(`https://raw.githubusercontent.com/${m[1]}/${repo}/main/history.json`);
+  return s;
+}
+let H = null, lastFetchOk = 0;
+async function load() {
+  const results = await Promise.allSettled(sources().map((u) =>
+    fetch(u + (u.includes("?") ? "&" : "?") + "t=" + Date.now(), { cache: "no-store" }).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })));
+  const ok = results.filter((r) => r.status === "fulfilled" && r.value?.readings).map((r) => r.value);
+  if (!ok.length) { $("err").textContent = "Couldn't reach data (no signal?) — will retry."; renderFresh(); return; }
+  ok.sort((a, b) => b.readings.length - a.readings.length || String(b.updated).localeCompare(String(a.updated)));
+  H = ok[0]; lastFetchOk = Date.now(); $("err").textContent = "";
+  render();
+}
+
+const avg = (a) => a.length ? a.reduce((s, x) => s + x, 0) / a.length : null;
+const val = (r, q, k) => r?.[q]?.[k] ?? null;
+function trailing(R, i, q, k) { return avg(R.slice(Math.max(0, i - 3), i).map((r) => val(r, q, k)).filter((x) => x != null)); }
+
+function delta(cur, ref, label, money) {
+  if (cur == null || ref == null) return `<div class="flat">— vs ${label}</div>`;
+  const d = cur - ref, pct = ref ? (d / ref) * 100 : 0;
+  // For prices, cheaper is good (green ▼); for listing counts, more inventory is good.
+  const cls = Math.abs(d) < 0.5 ? "flat" : (money ? (d < 0 ? "down" : "up") : (d > 0 ? "down" : "up"));
+  const arrow = Math.abs(d) < 0.5 ? "•" : d < 0 ? "▼" : "▲";
+  const amt = money ? fmt$(Math.abs(d)) : Math.abs(Math.round(d));
+  return `<div class="${cls}">${arrow} ${amt} (${pct >= 0 ? "+" : "−"}${Math.abs(pct).toFixed(1)}%) vs ${label}</div>`;
+}
+
+function renderCard(q) {
+  const R = H.readings, n = R.length, cur = R[n - 1], base = R[0];
+  const top = cur[q].top?.[0];
+  const buy = cur[q].min != null && cur[q].min <= MAX;
+  const el = $("card-" + q);
+  el.className = "card" + (buy ? " buy" : "");
+  el.innerHTML = `
+    <div class="label"><span class="dot" style="background:${C[q]}"></span>${LABEL[q]} · low</div>
+    <div class="big">${fmt$(cur[q].min)}</div>
+    <div class="where">${top ? `Sec ${top.section} · Row ${top.row}` : "no listings"}</div>
+    <div class="deltas">${delta(cur[q].min, base[q].min, "base", true)}${delta(cur[q].min, trailing(R, n - 1, q, "min"), "trail", true)}</div>
+    <div class="count"><b>${cur[q].count}</b> listings
+      <div class="deltas">${delta(cur[q].count, base[q].count, "base", false)}${delta(cur[q].count, trailing(R, n - 1, q, "count"), "trail", false)}</div>
+    </div>`;
+}
+
+function renderTable(q) {
+  const top = H.readings.at(-1)[q].top || [];
+  $("t-" + q).innerHTML = `<tr><th>$/ticket</th><th>Section</th><th>Row</th></tr>` +
+    (top.length ? top.map((l) => `<tr class="${l.price <= MAX ? "hit" : ""}"><td class="p">${fmt$(l.price)}</td><td>${l.section}${l.group ? ` <span class="sub">${l.group}</span>` : ""}</td><td>${l.row}</td></tr>`).join("")
+      : `<tr><td colspan="3" class="sub">No listings</td></tr>`);
+}
+
+function renderBanner() {
+  const cur = H.readings.at(-1), b = $("banner");
+  const t4 = cur.q4.top?.[0], t2 = cur.q2.top?.[0];
+  const hit4 = t4 && t4.price <= MAX, hit2 = t2 && t2.price <= MAX;
+  if (!hit4 && !hit2) { b.className = "banner"; return; }
+  b.className = "banner on";
+  b.innerHTML = (hit4 ? `BUY ZONE: 4 together at ${fmt$(t4.price)} Sec ${t4.section} Row ${t4.row}` : `BUY ZONE (pairs only): ${fmt$(t2.price)} Sec ${t2.section} Row ${t2.row}`) +
+    (hit4 && hit2 ? `<small>Pairs from ${fmt$(t2.price)} Sec ${t2.section} Row ${t2.row}</small>` : "") +
+    `<small>At or under your ${fmt$(MAX)}/ticket limit · all-in price · check Gametime before buying</small>`;
+}
+
+function renderFresh() {
+  const el = $("fresh");
+  if (!H?.readings?.length) { el.textContent = "no data yet"; el.className = "fresh stale"; return; }
+  const t = Date.parse(H.readings.at(-1).t), mins = Math.floor((Date.now() - t) / 60000);
+  el.textContent = mins < 1 ? "updated just now" : `updated ${mins} min ago`;
+  const expected = t >= Date.parse("2026-10-27T22:30:00Z") ? 5 : 10;
+  el.className = "fresh " + (mins <= expected + 6 ? "ok" : mins <= expected * 3 ? "stale" : "dead");
+  const left = GAME - Date.now();
+  $("countdown").textContent = left > 0 ? `First pitch in ${Math.floor(left / 3600000)}h ${Math.floor(left / 60000) % 60}m · ${H.readings.length} readings` : `Game time · ${H.readings.length} readings`;
+}
+
+// ---- charts
+const charts = {};
+const timeTick = (v) => new Date(v).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
+function baseOpts(money) {
+  return {
+    responsive: true, maintainAspectRatio: false, animation: false,
+    interaction: { mode: "index", intersect: false },
+    scales: {
+      x: { type: "linear", grid: { color: C.grid }, ticks: { color: C.muted, maxTicksLimit: 5, callback: timeTick, font: { size: 12 } } },
+      y: { grid: { color: C.grid }, ticks: { color: C.muted, font: { size: 12 }, callback: (v) => money ? "$" + v.toLocaleString("en-US") : v } },
+    },
+    plugins: {
+      legend: { labels: { color: C.text2, boxWidth: 14, boxHeight: 2, font: { size: 12 }, filter: (i) => !i.text.startsWith("_") } },
+      tooltip: { callbacks: { title: (it) => timeTick(it[0].parsed.x) + " ET", label: (c) => ` ${c.dataset.label.replace(/^_/, "")}: ${money ? fmt$(c.parsed.y) : c.parsed.y}` } },
+    },
+    elements: { point: { radius: 0, hitRadius: 12, hoverRadius: 4 } },
+  };
+}
+const line = (label, data, color, extra = {}) => ({ label, data, borderColor: color, backgroundColor: color, borderWidth: 2, tension: 0, spanGaps: true, ...extra });
+const hline = (label, y, xs, color, extra) => line(label, xs.length ? [{ x: xs[0], y }, { x: xs.at(-1), y }] : [], color, extra);
+const alpha = (hex, a) => hex + Math.round(a * 255).toString(16).padStart(2, "0");
+
+function priceDatasets(q) {
+  const R = H.readings, xs = R.map((r) => Date.parse(r.t));
+  const s = (k) => R.map((r, i) => ({ x: xs[i], y: val(r, q, k) }));
+  const trail = R.map((r, i) => ({ x: xs[i], y: i ? trailing(R, i, q, "min") : null }));
+  return [
+    line("Low", s("min"), C[q], { borderWidth: 3, pointRadius: R.length < 3 ? 4 : 0 }),
+    line("25th pct", s("p25"), alpha(C[q], 0.7), { borderDash: [] , borderWidth: 2 }),
+    line("Median", s("median"), alpha(C[q], 0.4), { borderWidth: 2 }),
+    hline("Baseline low", val(R[0], q, "min"), xs, C.text2, { borderDash: [6, 5], borderWidth: 1.5 }),
+    line("Trail avg (low)", trail, C.text2, { borderWidth: 1 }),
+    hline(`Max ${fmt$(MAX)}`, MAX, xs, C.max, { borderWidth: 2 }),
+  ];
+}
+function countDatasets() {
+  const R = H.readings, xs = R.map((r) => Date.parse(r.t)), out = [];
+  for (const q of ["q4", "q2"]) {
+    out.push(line(LABEL[q], R.map((r, i) => ({ x: xs[i], y: r[q].count })), C[q], { borderWidth: 3, pointRadius: R.length < 3 ? 4 : 0 }));
+    out.push(hline(`_${LABEL[q]} baseline`, R[0][q].count, xs, alpha(C[q], 0.8), { borderDash: [6, 5], borderWidth: 1.5 }));
+    out.push(line(`_${LABEL[q]} trail avg`, R.map((r, i) => ({ x: xs[i], y: i ? trailing(R, i, q, "count") : null })), alpha(C[q], 0.8), { borderWidth: 1 }));
+  }
+  return out;
+}
+function drawChart(id, datasets, money) {
+  if (!window.Chart) return;
+  // Pin the time axis to the data (at least a 1-hour window) so a single reading isn't lost in auto-range.
+  const xs = H.readings.map((r) => Date.parse(r.t)), x0 = xs[0], x1 = Math.max(xs.at(-1), x0 + 3600000);
+  if (!charts[id]) charts[id] = new Chart($(id), { type: "line", data: { datasets: [] }, options: baseOpts(money) });
+  const c = charts[id];
+  c.options.scales.x.min = x0; c.options.scales.x.max = x1;
+  c.data.datasets = datasets; c.update("none");
+}
+
+function render() {
+  if (!H?.readings?.length) { renderFresh(); return; }
+  renderFresh(); renderBanner();
+  for (const q of ["q4", "q2"]) { renderCard(q); renderTable(q); }
+  drawChart("c-q4", priceDatasets("q4"), true);
+  drawChart("c-q2", priceDatasets("q2"), true);
+  drawChart("c-n", countDatasets(), false);
+}
+
+load();
+setInterval(load, 60_000);
+setInterval(renderFresh, 15_000);
+// iOS Safari pauses timers in background tabs — refresh as soon as the page is visible again.
+document.addEventListener("visibilitychange", () => { if (!document.hidden) load(); });
+window.addEventListener("pageshow", (e) => { if (e.persisted) load(); });
+</script>
+</body>
+</html>

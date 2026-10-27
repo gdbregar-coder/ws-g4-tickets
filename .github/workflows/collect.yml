@@ -1,0 +1,25 @@
+name: collect
+on:
+  schedule:
+    # Every 30 min, 9:00 AM–7:30 PM EDT (UTC-4). Each run loops ~55 min, so cron lag
+    # or a skipped trigger is absorbed by the overlapping next run.
+    - cron: "*/30 13-23 * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: collector
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: |
+          git config user.name "price-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - run: node collect.mjs --loop
