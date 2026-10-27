@@ -50,12 +50,12 @@
   .fresh.dead { color: #fff; background: #8a1f1f; }
   .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex: none; }
   .strip { margin-top: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
-  .srow { padding: 10px 14px; }
+  .srow { padding: 8px 14px; }
   .srow + .srow { border-top: 1px solid var(--border); }
   .srow.buy { background: var(--good-bg); }
   .sline { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
   .sname { font-size: 15px; font-weight: 700; color: var(--text-2); display: flex; align-items: center; gap: 6px; min-width: 100px; }
-  .sprice { font-size: 34px; font-weight: 800; letter-spacing: -.5px; line-height: 1.1; }
+  .sprice { font-size: 30px; font-weight: 800; letter-spacing: -.5px; line-height: 1.1; }
   .srow.buy .sprice { color: var(--good); }
   .srow.small .sprice { font-size: 24px; }
   .srow.small .sname { font-size: 14px; }
@@ -72,16 +72,16 @@
   .smeta { font-size: 14px; color: var(--text-2); margin-top: 2px; }
   .smeta b { color: var(--text); }
   .up { color: var(--bad); } .down { color: var(--good); } .flat { color: var(--muted); }
-  section { margin-top: 18px; }
+  section { margin-top: 14px; }
   h2 { font-size: 16px; margin: 0 0 8px; color: var(--text-2); font-weight: 700; }
   .chartbox { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 10px 8px 6px; height: 280px; position: relative; }
   table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; font-size: 17px; }
-  th, td { padding: 9px 10px; text-align: left; }
+  th, td { padding: 6px 10px; text-align: left; }
   th { font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--border); }
   tr + tr td { border-top: 1px solid var(--border); }
   table.lv td { vertical-align: top; }
   table.lv td.lvname { font-weight: 700; font-size: 16px; }
-  table.lv .p { font-weight: 800; font-size: 19px; display: block; }
+  table.lv .p { font-weight: 800; font-size: 18px; display: block; }
   table.lv .sr { font-size: 13px; color: var(--muted); display: block; }
   table.lv .d { font-size: 13px; display: block; }
   table.lv td.hit { background: var(--good-bg); }
@@ -106,7 +106,28 @@
   table.lv .tag.drop { color: var(--good); }
   table.lv .tag.new { color: var(--pref); }
   .err { color: var(--bad); font-size: 14px; margin-top: 8px; }
-  footer { margin-top: 18px; color: var(--muted); font-size: 13px; }
+  footer { margin-top: 14px; color: var(--muted); font-size: 13px; }
+  /* Compact header, collapsible limits/charts/notes, "show all" toggles. */
+  header.top { display: flex; align-items: center; gap: 8px; }
+  header.top .hl { flex: 1; min-width: 0; }
+  header.top h1 { font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  header.top .fresh { font-size: 15px; padding: 5px 9px; }
+  header.top .rbtn { padding: 5px 11px; font-size: 16px; }
+  details > summary { cursor: pointer; list-style: none; -webkit-tap-highlight-color: transparent; }
+  details > summary::-webkit-details-marker { display: none; }
+  details > summary::after { content: "▸"; margin-left: 6px; color: var(--muted); }
+  details[open] > summary::after { content: "▾"; }
+  details.maxbar > summary { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-2); padding: 2px 0; }
+  details.maxbar > summary b { color: var(--text); }
+  details.maxbar[open] > summary { padding-bottom: 6px; }
+  details.fold { margin-top: 14px; }
+  details.fold > summary { font-size: 16px; font-weight: 700; color: var(--text-2); padding: 4px 0; }
+  details.fold section:first-of-type { margin-top: 8px; }
+  /* One line per table row: level, row and "+N more" sit inline instead of stacking. */
+  table.lv .sr, table.lv .more { display: inline; margin-left: 6px; }
+  table.lv .p { display: inline; }
+  table.lv td { vertical-align: middle; }
+  .linkbtn { font: inherit; font-size: 14px; font-weight: 700; color: var(--q4); background: none; border: 0; padding: 0; }
   footer a { color: var(--text-2); }
   @media (max-width: 640px) {
     .chartbox { height: 240px; }
@@ -115,21 +136,15 @@
 </head>
 <body>
 <main>
-  <header>
-    <div>
-      <h1>WS Game 4 · Brewers @ Rays</h1>
-      <div class="sub">Tropicana Field · Tue Oct 27 · 8:00 PM ET · Gametime all-in $/ticket</div>
-      <div class="sub" id="countdown"></div>
-    </div>
-    <div class="freshwrap">
-      <div class="fresh" id="fresh">loading…</div>
-      <button class="rbtn" id="refresh-top" aria-label="Refresh now">↻ Refresh</button>
-      <div class="checked" id="checked"></div>
-    </div>
+  <header class="top">
+    <div class="hl"><h1>WS G4 · MIL @ TB</h1><div class="sub" id="countdown"></div></div>
+    <div class="fresh" id="fresh">loading…</div>
+    <button class="rbtn" id="refresh-top" aria-label="Refresh now">↻</button>
   </header>
 
-  <div class="maxbar">
-    <div class="mhead"><span>Max $/ticket</span><button class="rbtn" id="share">Share these limits</button></div>
+  <details class="maxbar" id="limits">
+    <summary>Max $/tkt <span id="limits-sum"></span></summary>
+    <div class="mhead"><span></span><button class="rbtn" id="share">Share these limits</button></div>
     <div class="mrow"><label for="max-pref"><span class="dot" style="background:var(--pref)"></span>★ Preferred</label>
       <input id="max-pref" data-cat="pref" type="number" inputmode="numeric" min="0" step="25">
       <div class="steps"><button class="rbtn" data-cat="pref" data-step="-50">−50</button><button class="rbtn" data-cat="pref" data-step="50">+50</button></div></div>
@@ -139,7 +154,7 @@
     <div class="mrow"><label for="max-sro"><span class="dot" style="background:var(--muted)"></span>Standing room</label>
       <input id="max-sro" data-cat="sro" type="number" inputmode="numeric" min="0" step="25">
       <div class="steps"><button class="rbtn" data-cat="sro" data-step="-50">−50</button><button class="rbtn" data-cat="sro" data-step="50">+50</button></div></div>
-  </div>
+  </details>
 
   <div class="strip">
     <div class="srow" id="s-pref"></div>
@@ -159,16 +174,20 @@
     <table id="t-sec" class="lv"></table>
   </section>
 
-  <section><h2>4 together · $/ticket</h2><div class="chartbox"><canvas id="c-q4"></canvas></div></section>
-  <section><h2>Listing count</h2><div class="chartbox"><canvas id="c-n"></canvas></div></section>
+  <details class="fold" id="charts">
+    <summary>Charts</summary>
+    <section><h2>4 together · $/ticket</h2><div class="chartbox"><canvas id="c-q4"></canvas></div></section>
+    <section><h2>Listing count</h2><div class="chartbox"><canvas id="c-n"></canvas></div></section>
+  </details>
 
-  <footer>
+  <details class="fold"><summary>How this works</summary><footer>
+    Brewers @ Rays · Tropicana Field · Tue Oct 27 · 8:00 PM ET. Prices are Gametime all-in, per ticket.
     Seated = assigned seats only: a numbered section and a real row (no Party Deck, section ranges with row TBD, or wheelchair rows).
     Preferred = seated in Sec 105–125 rows A–V (first 20) or any 200s/300s section rows A–B (first 2);
     rows skip I and O. Readings every minute. Baseline = first reading. Trailing avg = previous 3 readings.
     ▲/▼ compare the current reading to each. Read-only tracker — never buys anything.
     <span id="src"></span>
-  </footer>
+  </footer></details>
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -208,9 +227,11 @@ const qp = new URLSearchParams(location.search);
 const MAXES = {};
 for (const k of ["pref", "seat", "sro"]) MAXES[k] = Number(qp.get(k) || store("max_" + k) || qp.get("max") || store("maxPrice") || DEFAULT_MAX);
 const limitsUrl = () => `${location.origin}${location.pathname}?pref=${MAXES.pref}&seat=${MAXES.seat}&sro=${MAXES.sro}`;
+const limitsSum = () => ($("limits-sum").innerHTML = `★ <b>${fmt$(MAXES.pref)}</b> · Seat <b>${fmt$(MAXES.seat)}</b> · SRO <b>${fmt$(MAXES.sro)}</b>`);
+limitsSum();
 function setMax(k, v) {
   if (!(v > 0)) return;
-  MAXES[k] = v; $("max-" + k).value = v; store("max_" + k, String(v));
+  MAXES[k] = v; $("max-" + k).value = v; store("max_" + k, String(v)); limitsSum();
   try { history.replaceState(null, "", limitsUrl()); } catch {}
   render();
 }
@@ -229,14 +250,21 @@ $("share").addEventListener("click", async () => {
 // Manual refresh: show it's working, and say so even when no newer reading exists yet.
 async function manualRefresh() {
   const btns = [$("refresh-top")];
-  btns.forEach((b) => { b.disabled = true; b.dataset.label ??= b.textContent; b.textContent = "Refreshing…"; });
+  btns.forEach((b) => { b.disabled = true; b.dataset.label ??= b.textContent; b.textContent = "…"; });
   const before = H?.readings?.length || 0;
   await load();
   const after = H?.readings?.length || 0;
-  btns.forEach((b) => { b.disabled = false; b.textContent = after > before ? "✓ New data" : "✓ Up to date"; });
+  btns.forEach((b) => { b.disabled = false; b.textContent = "✓"; });
   setTimeout(() => btns.forEach((b) => (b.textContent = b.dataset.label)), 2500);
 }
 $("refresh-top").addEventListener("click", manualRefresh);
+// Collapsed by default to save scrolling; each phone remembers whether the charts were left open.
+$("charts").open = store("chartsOpen") === "1";
+$("charts").addEventListener("toggle", () => { store("chartsOpen", $("charts").open ? "1" : "0"); if ($("charts").open) render(); });
+// Long tables show their top rows; "Show all" expands until the page is reloaded.
+const SHOW_ALL = { pref: false, sec: false }, TOP = 5;
+document.addEventListener("click", (e) => { const k = e.target.dataset?.more; if (k) { SHOW_ALL[k] = !SHOW_ALL[k]; renderSections(); } });
+const moreBtn = (k, n) => n > TOP ? ` · <button class="linkbtn" data-more="${k}">${SHOW_ALL[k] ? "Show fewer" : `Show all ${n}`}</button>` : "";
 
 // Data: same-origin history.json (GitHub Pages) and raw.githubusercontent.com (updates
 // without waiting for a Pages build). Whichever has the newer last reading wins.
@@ -271,7 +299,7 @@ async function load() {
   }));
   await latest;
   if (!got) { $("err").textContent = "Couldn't reach data (no signal?) — showing last loaded, will retry."; renderFresh(); return; }
-  $("checked").textContent = "Checked " + new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit", timeZone: "America/New_York" }) + " ET · new readings every minute";
+  $("fresh").title = "Checked " + new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit", timeZone: "America/New_York" }) + " ET · new readings every minute";
   render();
 }
 
@@ -292,12 +320,11 @@ function delta(cur, ref, label, money) {
 const sval = (r, q, sub, k) => r?.[q]?.[sub]?.[k] ?? null;
 function trend(q, sub, cur) {
   const R = H.readings.filter((r) => r[q]?.[sub]), n = R.length;
-  if (!n) return `<div class="snote">Trend starts with the next reading.</div>`;
+  if (!n) return `<div class="smeta"><b>${cur.count}</b> listed</div>`;
   // Compare to readings before the current one; if history already holds the latest.json reading, skip it.
   const prev = R.at(-1).t === L?.t ? R.slice(0, -1) : R;
   const t = (k) => avg(prev.slice(-3).map((r) => sval(r, q, sub, k)).filter((x) => x != null));
-  return `<div class="smeta">Low ${delta(cur.min, sval(R[0], q, sub, "min"), "base", true)} · ${delta(cur.min, prev.length ? t("min") : null, "trail", true)}</div>
-    <div class="smeta"><b>${cur.count}</b> listed ${delta(cur.count, sval(R[0], q, sub, "count"), "base", false)} · ${delta(cur.count, prev.length ? t("count") : null, "trail", false)}</div>`;
+  return `<div class="smeta">${delta(cur.min, sval(R[0], q, sub, "min"), "base", true)} · ${delta(cur.min, prev.length ? t("min") : null, "trail", true)} · <b>${cur.count}</b> listed</div>`;
 }
 function stripRow(id, label, color, q, sub, cur, max, note = "") {
   const el = $(id);
@@ -313,9 +340,9 @@ function stripRow(id, label, color, q, sub, cur, max, note = "") {
 function renderStrips() {
   if (!L) { $("s-pref").innerHTML = `<div class="sub">Seat breakdown loads with the latest listings…</div>`; return; }
   stripRow("s-pref", "★ Preferred · 4 together", C.pref, "q4", "pref", lowOf(L.q4.filter(isPreferred)), MAXES.pref,
-    `<div class="snote">Sec 105–125 rows A–V · 200s/300s rows A–B · assigned seats only · max ${fmt$(MAXES.pref)}</div>`);
+    );
   stripRow("s-seat4", "Seated · 4 together", C.q4, "q4", "seated", lowOf(L.q4.filter(isAssigned)), MAXES.seat,
-    `<div class="snote">Assigned seats only (no Party Deck, TBD or wheelchair) · max ${fmt$(MAXES.seat)}</div>`);
+    );
   // Is any real seat cheaper than standing room? Cheapest assigned seat (same rules as Seated) vs cheapest
   // SRO, per quantity. A seat at or under the SRO price is highlighted.
   const cheap = [["q1", "Single"], ["q2", "Pair"], ["q4", "4 together"]].map(([q, label]) => ({
@@ -338,7 +365,7 @@ function renderStrips() {
   el.innerHTML = `
     <div class="sline">
       <span class="sname">Cheapest standing room</span>
-      <span class="sprice">${fmt$(sro?.[0])}</span><span class="sro2">${sro ? "per ticket" : "none listed"} · max ${fmt$(MAXES.sro)}</span>
+      <span class="sprice">${fmt$(sro?.[0])}</span><span class="sro2">${sro ? "per ticket" : "none listed"}</span>
     </div>`;
 }
 
@@ -348,7 +375,7 @@ function renderPref() {
   if (!L) { el.innerHTML = ""; return; }
   const rows = L.q4.filter(isPreferred);
   if (!rows.length) { el.innerHTML = `<tr><td class="none">No preferred 4-together listings right now.</td></tr>`; return; }
-  const shown = rows.slice(0, 8);
+  const shown = SHOW_ALL.pref ? rows : rows.slice(0, TOP);
   // Last 5 checks before the current one: each seat's (section+row) cheapest price the first time it appears
   // in that window. Change = now vs then; seats not in any of those checks are new.
   const past = H.readings.filter((r) => r.q4?.prefList && r.t < L.t).slice(-5);
@@ -369,7 +396,7 @@ function renderPref() {
   el.innerHTML = `<tr><th>Price</th><th>Section</th><th>Row</th></tr>` +
     shown.map(([price, section, row, group]) => { const t = tag(price, section, row); return `<tr class="${t.cls}"><td${price <= MAXES.pref ? ` class="hit"` : ""}><span class="p">${fmt$(price)}</span>${t.html}</td>` +
       `<td class="lvname">${section}<span class="sr">${group || ""}</span></td><td>${row}</td></tr>`; }).join("") +
-    `<tr><td colspan="3" class="sub">${rows.length} preferred listing${rows.length > 1 ? "s" : ""}${rows.length > shown.length ? ` · cheapest ${shown.length} shown` : ""}${past.length ? ` · ▼ cheaper · ▲ pricier · new = arrived, vs. the ${span}` : " · changes show after the next check"}</td></tr>`;
+    `<tr><td colspan="3" class="sub">${rows.length} preferred listing${rows.length > 1 ? "s" : ""}${moreBtn("pref", rows.length)}${past.length ? ` · ▼▲ new vs. the ${span}` : ""}</td></tr>`;
 }
 
 // Best (cheapest) seated listing at or under the seated max in every section, from latest.json.
@@ -388,26 +415,25 @@ function renderSections() {
     secs.get(k).n++;
   }
   const hits = [...secs.values()].sort((a, b) => a.best.price - b.best.price);
-  const age = Math.floor((Date.now() - Date.parse(L.t)) / 60000);
   if (!hits.length) {
     const c4 = seated[0];
     el.innerHTML = `<tr><td class="none">Nothing at or under ${fmt$(MAX)} right now.<br>Closest: ${c4 ? `4 together ${fmt$(c4[0])} Sec ${c4[1]} Row ${c4[2]}` : "no 4-together listings"}</td></tr>`;
     return;
   }
   el.innerHTML = `<tr><th>Section</th><th><span class="dot" style="background:var(--q4)"></span> 4 together</th></tr>` +
-    hits.map((e) => `<tr><td class="lvname">${e.section}<span class="sr">${e.group || ""}</span></td><td class="hit"><span class="p">${fmt$(e.best.price)}</span>` +
-      `<span class="sr">Row ${e.best.row}</span>${e.n > 1 ? `<span class="more">+${e.n - 1} more under</span>` : ""}</td></tr>`).join("") +
-    `<tr><td colspan="2" class="sub">${hits.length} section${hits.length > 1 ? "s" : ""} · all listings as of ${age < 1 ? "just now" : age + " min ago"}</td></tr>`;
+    (SHOW_ALL.sec ? hits : hits.slice(0, TOP)).map((e) => `<tr><td class="lvname">${e.section}<span class="sr">${e.group || ""}</span></td><td class="hit"><span class="p">${fmt$(e.best.price)}</span>` +
+      `<span class="sr">Row ${e.best.row}</span>${e.n > 1 ? `<span class="more">+${e.n - 1}</span>` : ""}</td></tr>`).join("") +
+    `<tr><td colspan="2" class="sub">${hits.length} section${hits.length > 1 ? "s" : ""}${moreBtn("sec", hits.length)}</td></tr>`;
 }
 
 function renderFresh() {
   const el = $("fresh");
   if (!H?.readings?.length) { el.textContent = "no data yet"; el.className = "fresh stale"; return; }
   const t = Date.parse(H.readings.at(-1).t), mins = Math.floor((Date.now() - t) / 60000);
-  el.textContent = mins < 1 ? "updated just now" : `updated ${mins} min ago`;
+  el.textContent = mins < 1 ? "just now" : `${mins} min ago`;
   el.className = "fresh " + (mins <= 3 ? "ok" : mins <= 10 ? "stale" : "dead");
   const left = GAME - Date.now();
-  $("countdown").textContent = left > 0 ? `First pitch in ${Math.floor(left / 3600000)}h ${Math.floor(left / 60000) % 60}m · ${H.readings.length} readings` : `Game time · ${H.readings.length} readings`;
+  $("countdown").textContent = left > 0 ? `8:00 PM ET · in ${Math.floor(left / 3600000)}h ${Math.floor(left / 60000) % 60}m` : "Game time";
 }
 
 // ---- charts
@@ -473,6 +499,7 @@ function render() {
   renderFresh();
   renderStrips();
   renderSections();
+  if (!$("charts").open) return; // charts are drawn only while their section is open
   drawChart("c-q4", priceDatasets("q4"), true);
   drawChart("c-n", countDatasets(), false);
 }
