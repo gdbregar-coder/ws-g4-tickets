@@ -43,7 +43,14 @@ async function fetchQty(q) {
         }))
         .sort((a, b) => a.price - b.price);
       const prices = rows.map((r) => r.price);
-      return { count: rows.length, min: prices[0] ?? null, p25: pct(prices, 0.25), median: pct(prices, 0.5), top: rows.slice(0, TOP_N) };
+      // Cheapest listing per seating level (Gametime section_group); rows are sorted, so first seen = cheapest.
+      const levels = {};
+      for (const r of rows) {
+        const k = r.group || "Other";
+        if (!levels[k]) levels[k] = { min: r.price, section: r.section, row: r.row, count: 0 };
+        levels[k].count++;
+      }
+      return { count: rows.length, min: prices[0] ?? null, p25: pct(prices, 0.25), median: pct(prices, 0.5), top: rows.slice(0, TOP_N), levels };
     } catch (e) {
       lastErr = e;
       await sleep(15_000);

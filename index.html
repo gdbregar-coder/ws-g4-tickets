@@ -46,9 +46,6 @@
   .rbtn:disabled { opacity: .6; }
   .checked { width: 100%; font-size: 13px; color: var(--muted); }
   .fresh.dead { color: #fff; background: #8a1f1f; }
-  .banner { display: none; margin: 14px 0 0; padding: 14px 16px; border-radius: 14px; background: var(--good-bg); border: 2px solid var(--good); color: #d9ffe8; font-size: 22px; font-weight: 800; line-height: 1.25; }
-  .banner.on { display: block; }
-  .banner small { display: block; font-size: 16px; font-weight: 600; color: #a8e8c2; margin-top: 4px; }
   .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px; min-width: 0; }
   .card .label { font-size: 15px; font-weight: 700; color: var(--text-2); display: flex; align-items: center; gap: 8px; }
@@ -73,6 +70,14 @@
   tr + tr td { border-top: 1px solid var(--border); }
   tr.hit td { background: var(--good-bg); color: #d9ffe8; }
   tr.hit td.p { color: var(--good); }
+  table.lv td { vertical-align: top; }
+  table.lv td.lvname { font-weight: 700; font-size: 16px; }
+  table.lv .p { font-weight: 800; font-size: 19px; display: block; }
+  table.lv .sr { font-size: 13px; color: var(--muted); display: block; }
+  table.lv .d { font-size: 13px; display: block; }
+  table.lv td.hit { background: var(--good-bg); }
+  table.lv td.hit .p { color: var(--good); }
+  table.lv td.hit .sr { color: #a8e8c2; }
   .settings { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 12px 14px; }
   .settings input { font: inherit; font-size: 20px; font-weight: 700; width: 120px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); }
   .settings button { font: inherit; font-weight: 700; padding: 9px 14px; border-radius: 10px; border: 0; background: var(--surface-2); color: var(--text); }
@@ -104,13 +109,16 @@
     </div>
   </header>
 
-  <div class="banner" id="banner"></div>
-
   <div class="cards">
     <div class="card" id="card-q4"></div>
     <div class="card" id="card-q2"></div>
   </div>
   <div class="err" id="err"></div>
+
+  <section>
+    <h2>Cheapest by level</h2>
+    <table id="t-lv" class="lv"></table>
+  </section>
 
   <section>
     <h2>Cheapest right now</h2>
@@ -234,15 +242,24 @@ function renderTable(q) {
       : `<tr><td colspan="3" class="sub">No listings</td></tr>`);
 }
 
-function renderBanner() {
-  const cur = H.readings.at(-1), b = $("banner");
-  const t4 = cur.q4.top?.[0], t2 = cur.q2.top?.[0];
-  const hit4 = t4 && t4.price <= MAX, hit2 = t2 && t2.price <= MAX;
-  if (!hit4 && !hit2) { b.className = "banner"; return; }
-  b.className = "banner on";
-  b.innerHTML = (hit4 ? `BUY ZONE: 4 together at ${fmt$(t4.price)} Sec ${t4.section} Row ${t4.row}` : `BUY ZONE (pairs only): ${fmt$(t2.price)} Sec ${t2.section} Row ${t2.row}`) +
-    (hit4 && hit2 ? `<small>Pairs from ${fmt$(t2.price)} Sec ${t2.section} Row ${t2.row}</small>` : "") +
-    `<small>At or under your ${fmt$(MAX)}/ticket limit · all-in price · check Gametime before buying</small>`;
+// Gametime section_group names, ordered field level → upper deck; unknown groups go last.
+const LEVEL_ORDER = ["Infield", "Baseline Box", "Outfield", "Press Level", "Party Deck", "Upper Deck", "Standing Room Only"];
+function renderLevels() {
+  const R = H.readings, cur = R.at(-1), el = $("t-lv");
+  if (!cur.q4.levels && !cur.q2.levels) { el.innerHTML = `<tr><td class="sub">Per-level prices start with the next reading.</td></tr>`; return; }
+  const names = [...new Set([...Object.keys(cur.q4.levels || {}), ...Object.keys(cur.q2.levels || {})])]
+    .sort((a, b) => (LEVEL_ORDER.indexOf(a) + 1 || 99) - (LEVEL_ORDER.indexOf(b) + 1 || 99) || a.localeCompare(b));
+  // Per-level baseline = first reading that recorded that level.
+  const base = (q, name) => R.find((r) => r[q].levels?.[name])?.[q].levels[name].min;
+  const cell = (q, name) => {
+    const l = cur[q].levels?.[name];
+    if (!l) return `<td><span class="sr">none</span></td>`;
+    const b = base(q, name), d = b == null ? 0 : l.min - b;
+    const dd = Math.abs(d) < 1 ? `<span class="d flat">• at base</span>` : `<span class="d ${d < 0 ? "down" : "up"}">${d < 0 ? "▼" : "▲"} ${fmt$(Math.abs(d))} vs base</span>`;
+    return `<td class="${l.min <= MAX ? "hit" : ""}"><span class="p">${fmt$(l.min)}</span><span class="sr">Sec ${l.section} · Row ${l.row} · ${l.count} listed</span>${dd}</td>`;
+  };
+  el.innerHTML = `<tr><th>Level</th><th><span class="dot" style="background:var(--q4)"></span> 4 together</th><th><span class="dot" style="background:var(--q2)"></span> Pairs</th></tr>` +
+    names.map((n) => `<tr><td class="lvname">${n}</td>${cell("q4", n)}${cell("q2", n)}</tr>`).join("");
 }
 
 function renderFresh() {
@@ -312,8 +329,9 @@ function drawChart(id, datasets, money) {
 
 function render() {
   if (!H?.readings?.length) { renderFresh(); return; }
-  renderFresh(); renderBanner();
+  renderFresh();
   for (const q of ["q4", "q2"]) { renderCard(q); renderTable(q); }
+  renderLevels();
   drawChart("c-q4", priceDatasets("q4"), true);
   drawChart("c-q2", priceDatasets("q2"), true);
   drawChart("c-n", countDatasets(), false);
