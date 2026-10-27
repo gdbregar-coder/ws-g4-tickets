@@ -2,7 +2,7 @@
 //
 //   node collect.mjs --dry    one poll, print summary, write nothing (smoke test)
 //   node collect.mjs          one poll, append to history.json
-//   node collect.mjs --loop   poll on schedule (10 min, 5 min after 6:30 PM ET) until
+//   node collect.mjs --loop   poll every 5 min until
 //                             first pitch or MAX_RUN_MIN elapses; commits+pushes each
 //                             reading when running in GitHub Actions.
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
@@ -12,13 +12,12 @@ const EVENT_ID = "6a6e328da480127e6660ba09";
 const API = (q) => `https://mobile.gametime.co/v3/listings/${EVENT_ID}?all_in_pricing=true&quantity=${q}`;
 const UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
 const END = Date.parse("2026-10-28T00:00:00Z");       // 8:00 PM EDT
-const FAST_FROM = Date.parse("2026-10-27T22:30:00Z"); // 6:30 PM EDT
 const MAX_RUN_MIN = Number(process.env.MAX_RUN_MIN || 55);
 const FILE = new URL("./history.json", import.meta.url);
 const TOP_N = 5;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const intervalAt = (t) => (t >= FAST_FROM ? 5 : 10) * 60_000;
+const intervalAt = () => 5 * 60_000;
 
 function pct(sorted, p) {
   if (!sorted.length) return null;

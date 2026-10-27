@@ -46,30 +46,26 @@
   .rbtn:disabled { opacity: .6; }
   .checked { width: 100%; font-size: 13px; color: var(--muted); }
   .fresh.dead { color: #fff; background: #8a1f1f; }
-  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px; min-width: 0; }
-  .card .label { font-size: 15px; font-weight: 700; color: var(--text-2); display: flex; align-items: center; gap: 8px; }
   .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex: none; }
-  .card .big { font-size: clamp(40px, 12vw, 64px); font-weight: 800; letter-spacing: -1px; line-height: 1.05; margin: 4px 0 2px; }
-  .card.buy { border-color: var(--good); box-shadow: inset 0 0 0 1px var(--good); }
-  .card.buy .big { color: var(--good); }
-  .card .where { font-size: 15px; color: var(--text-2); }
-  .deltas { margin-top: 8px; font-size: 15px; display: grid; gap: 2px; }
+  .strip { margin-top: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .srow { padding: 10px 14px; }
+  .srow + .srow { border-top: 1px solid var(--border); }
+  .srow.buy { background: var(--good-bg); }
+  .sline { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .sname { font-size: 15px; font-weight: 700; color: var(--text-2); display: flex; align-items: center; gap: 6px; min-width: 100px; }
+  .sprice { font-size: 34px; font-weight: 800; letter-spacing: -.5px; line-height: 1.1; }
+  .srow.buy .sprice { color: var(--good); }
+  .swhere { font-size: 14px; color: var(--muted); }
+  .smeta { font-size: 14px; color: var(--text-2); margin-top: 2px; }
+  .smeta b { color: var(--text); }
   .up { color: var(--bad); } .down { color: var(--good); } .flat { color: var(--muted); }
-  .count { margin-top: 8px; font-size: 16px; color: var(--text-2); }
-  .count b { color: var(--text); font-size: 20px; }
-  .count .deltas { margin-top: 2px; font-size: 14px; }
   section { margin-top: 18px; }
   h2 { font-size: 16px; margin: 0 0 8px; color: var(--text-2); font-weight: 700; }
   .chartbox { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 10px 8px 6px; height: 280px; position: relative; }
-  .tables { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; font-size: 17px; }
   th, td { padding: 9px 10px; text-align: left; }
   th { font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--border); }
-  td.p { font-weight: 800; }
   tr + tr td { border-top: 1px solid var(--border); }
-  tr.hit td { background: var(--good-bg); color: #d9ffe8; }
-  tr.hit td.p { color: var(--good); }
   table.lv td { vertical-align: top; }
   table.lv td.lvname { font-weight: 700; font-size: 16px; }
   table.lv .p { font-weight: 800; font-size: 19px; display: block; }
@@ -85,12 +81,7 @@
   footer { margin-top: 18px; color: var(--muted); font-size: 13px; }
   footer a { color: var(--text-2); }
   @media (max-width: 640px) {
-    .tables { grid-template-columns: 1fr; }
     .chartbox { height: 240px; }
-  }
-  @media (max-width: 380px) {
-    .cards { gap: 8px; }
-    .card { padding: 12px 10px; }
   }
 </style>
 </head>
@@ -109,23 +100,15 @@
     </div>
   </header>
 
-  <div class="cards">
-    <div class="card" id="card-q4"></div>
-    <div class="card" id="card-q2"></div>
+  <div class="strip">
+    <div class="srow" id="s-q4"></div>
+    <div class="srow" id="s-q2"></div>
   </div>
   <div class="err" id="err"></div>
 
   <section>
     <h2>Cheapest by level</h2>
     <table id="t-lv" class="lv"></table>
-  </section>
-
-  <section>
-    <h2>Cheapest right now</h2>
-    <div class="tables">
-      <div><h2><span class="dot" style="background:var(--q4)"></span> 4 together</h2><table id="t-q4"></table></div>
-      <div><h2><span class="dot" style="background:var(--q2)"></span> Pairs</h2><table id="t-q2"></table></div>
-    </div>
   </section>
 
   <section><h2>4 together · $/ticket</h2><div class="chartbox"><canvas id="c-q4"></canvas></div></section>
@@ -141,7 +124,7 @@
   </section>
 
   <footer>
-    Readings every 10 min (5 min after 6:30 PM ET). Baseline = first reading. Trailing avg = previous 3 readings.
+    Readings every 5 min. Baseline = first reading. Trailing avg = previous 3 readings.
     ▲/▼ compare the current reading to each. Read-only tracker — never buys anything.
     <span id="src"></span>
   </footer>
@@ -201,7 +184,7 @@ async function load() {
     } finally { clearTimeout(timer); }
   }));
   if (!got) { $("err").textContent = "Couldn't reach data (no signal?) — showing last loaded, will retry."; renderFresh(); return; }
-  $("checked").textContent = "Checked " + new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit", timeZone: "America/New_York" }) + " ET · new readings every " + (Date.now() >= Date.parse("2026-10-27T22:30:00Z") ? 5 : 10) + " min";
+  $("checked").textContent = "Checked " + new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit", timeZone: "America/New_York" }) + " ET · new readings every 5 min";
   render();
 }
 
@@ -209,37 +192,27 @@ const avg = (a) => a.length ? a.reduce((s, x) => s + x, 0) / a.length : null;
 const val = (r, q, k) => r?.[q]?.[k] ?? null;
 function trailing(R, i, q, k) { return avg(R.slice(Math.max(0, i - 3), i).map((r) => val(r, q, k)).filter((x) => x != null)); }
 
+// Compact ▲/▼ change. Prices: cheaper is good (green ▼). Counts: more inventory is good.
 function delta(cur, ref, label, money) {
-  if (cur == null || ref == null) return `<div class="flat">— vs ${label}</div>`;
-  const d = cur - ref, pct = ref ? (d / ref) * 100 : 0;
-  // For prices, cheaper is good (green ▼); for listing counts, more inventory is good.
-  const cls = Math.abs(d) < 0.5 ? "flat" : (money ? (d < 0 ? "down" : "up") : (d > 0 ? "down" : "up"));
-  const arrow = Math.abs(d) < 0.5 ? "•" : d < 0 ? "▼" : "▲";
-  const amt = money ? fmt$(Math.abs(d)) : Math.abs(Math.round(d));
-  return `<div class="${cls}">${arrow} ${amt} (${pct >= 0 ? "+" : "−"}${Math.abs(pct).toFixed(1)}%) vs ${label}</div>`;
+  if (cur == null || ref == null) return `<span class="flat">— ${label}</span>`;
+  const d = Math.round(cur - ref);
+  if (d === 0) return `<span class="flat">±0 ${label}</span>`;
+  const good = money ? d < 0 : d > 0;
+  return `<span class="${good ? "down" : "up"}">${d < 0 ? "▼" : "▲"}${money ? fmt$(Math.abs(d)) : Math.abs(d)} ${label}</span>`;
 }
 
-function renderCard(q) {
-  const R = H.readings, n = R.length, cur = R[n - 1], base = R[0];
-  const top = cur[q].top?.[0];
-  const buy = cur[q].min != null && cur[q].min <= MAX;
-  const el = $("card-" + q);
-  el.className = "card" + (buy ? " buy" : "");
+function renderStrip(q) {
+  const R = H.readings, n = R.length, cur = R[n - 1], base = R[0], top = cur[q].top?.[0];
+  const el = $("s-" + q);
+  el.className = "srow" + (cur[q].min != null && cur[q].min <= MAX ? " buy" : "");
   el.innerHTML = `
-    <div class="label"><span class="dot" style="background:${C[q]}"></span>${LABEL[q]} · low</div>
-    <div class="big">${fmt$(cur[q].min)}</div>
-    <div class="where">${top ? `Sec ${top.section} · Row ${top.row}` : "no listings"}</div>
-    <div class="deltas">${delta(cur[q].min, base[q].min, "base", true)}${delta(cur[q].min, trailing(R, n - 1, q, "min"), "trail", true)}</div>
-    <div class="count"><b>${cur[q].count}</b> listings
-      <div class="deltas">${delta(cur[q].count, base[q].count, "base", false)}${delta(cur[q].count, trailing(R, n - 1, q, "count"), "trail", false)}</div>
-    </div>`;
-}
-
-function renderTable(q) {
-  const top = H.readings.at(-1)[q].top || [];
-  $("t-" + q).innerHTML = `<tr><th>$/ticket</th><th>Section</th><th>Row</th></tr>` +
-    (top.length ? top.map((l) => `<tr class="${l.price <= MAX ? "hit" : ""}"><td class="p">${fmt$(l.price)}</td><td>${l.section}${l.group ? ` <span class="sub">${l.group}</span>` : ""}</td><td>${l.row}</td></tr>`).join("")
-      : `<tr><td colspan="3" class="sub">No listings</td></tr>`);
+    <div class="sline">
+      <span class="sname"><span class="dot" style="background:${C[q]}"></span>${LABEL[q]}</span>
+      <span class="sprice">${fmt$(cur[q].min)}</span>
+      <span class="swhere">${top ? `Sec ${top.section} · Row ${top.row}` : "no listings"}</span>
+    </div>
+    <div class="smeta">Low ${delta(cur[q].min, base[q].min, "base", true)} · ${delta(cur[q].min, trailing(R, n - 1, q, "min"), "trail", true)}</div>
+    <div class="smeta"><b>${cur[q].count}</b> listed ${delta(cur[q].count, base[q].count, "base", false)} · ${delta(cur[q].count, trailing(R, n - 1, q, "count"), "trail", false)}</div>`;
 }
 
 // Gametime section_group names, ordered field level → upper deck; unknown groups go last.
@@ -267,7 +240,7 @@ function renderFresh() {
   if (!H?.readings?.length) { el.textContent = "no data yet"; el.className = "fresh stale"; return; }
   const t = Date.parse(H.readings.at(-1).t), mins = Math.floor((Date.now() - t) / 60000);
   el.textContent = mins < 1 ? "updated just now" : `updated ${mins} min ago`;
-  const expected = t >= Date.parse("2026-10-27T22:30:00Z") ? 5 : 10;
+  const expected = 5;
   el.className = "fresh " + (mins <= expected + 6 ? "ok" : mins <= expected * 3 ? "stale" : "dead");
   const left = GAME - Date.now();
   $("countdown").textContent = left > 0 ? `First pitch in ${Math.floor(left / 3600000)}h ${Math.floor(left / 60000) % 60}m · ${H.readings.length} readings` : `Game time · ${H.readings.length} readings`;
@@ -330,7 +303,7 @@ function drawChart(id, datasets, money) {
 function render() {
   if (!H?.readings?.length) { renderFresh(); return; }
   renderFresh();
-  for (const q of ["q4", "q2"]) { renderCard(q); renderTable(q); }
+  for (const q of ["q4", "q2"]) renderStrip(q);
   renderLevels();
   drawChart("c-q4", priceDatasets("q4"), true);
   drawChart("c-q2", priceDatasets("q2"), true);
