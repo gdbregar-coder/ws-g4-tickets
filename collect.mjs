@@ -87,10 +87,10 @@ async function fetchQty(q) {
 
 // Returns the history reading plus every listing (compact) for latest.json.
 async function poll() {
-  const [q2, q4] = await Promise.all([fetchQty(2), fetchQty(4)]);
+  const [q1, q2, q4] = await Promise.all([fetchQty(1), fetchQty(2), fetchQty(4)]);
   const t = new Date().toISOString();
   const compact = (rows) => rows.map((r) => [r.price, r.section, r.row, r.group]);
-  return { reading: { t, q2: q2.summary, q4: q4.summary }, latest: { t, fields: ["price", "section", "row", "group"], q2: compact(q2.rows), q4: compact(q4.rows) } };
+  return { reading: { t, q1: q1.summary, q2: q2.summary, q4: q4.summary }, latest: { t, fields: ["price", "section", "row", "group"], q1: compact(q1.rows), q2: compact(q2.rows), q4: compact(q4.rows) } };
 }
 
 function load() {

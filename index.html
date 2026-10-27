@@ -308,13 +308,15 @@ function renderStrips() {
     `<div class="snote">Sec 105–125 rows A–V · 200s/300s rows A–B · assigned seats only · max ${fmt$(MAXES.pref)}</div>`);
   stripRow("s-seat4", "Seated · 4 together", C.q4, "q4", "seated", lowOf(L.q4.filter(isAssigned)), MAXES.seat,
     `<div class="snote">Assigned seats only (no Party Deck, TBD or wheelchair) · max ${fmt$(MAXES.seat)}</div>`);
-  const s4 = lowOf(L.q4.filter(isSro)), s2 = lowOf(L.q2.filter(isSro)), el = $("s-sro");
-  el.className = "srow small" + ([s4.min, s2.min].some((v) => v != null && v <= MAXES.sro) ? " buy" : "");
+  // Singles (q1) start with the first reading after they were added; show "—" until then.
+  const s4 = lowOf(L.q4.filter(isSro)), s2 = lowOf(L.q2.filter(isSro)), s1 = lowOf((L.q1 || []).filter(isSro)), el = $("s-sro");
+  el.className = "srow small" + ([s4.min, s2.min, s1.min].some((v) => v != null && v <= MAXES.sro) ? " buy" : "");
   el.innerHTML = `
     <div class="sline">
       <span class="sname">Standing room</span>
       <span class="sprice">${fmt$(s4.min)}</span><span class="sro2">4 together (${s4.count})</span>
       <span class="sprice">${fmt$(s2.min)}</span><span class="sro2">pairs (${s2.count})</span>
+      <span class="sprice">${fmt$(s1.min)}</span><span class="sro2">single (${L.q1 ? s1.count : "—"})</span>
     </div>`;
 }
 
