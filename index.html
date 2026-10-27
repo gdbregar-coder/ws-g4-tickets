@@ -64,6 +64,10 @@
   .cheap { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 4px; }
   .cheap .sprice { display: block; }
   .cheap .sro2 { display: block; font-size: 13px; }
+  .cheap > div { border-radius: 10px; padding: 6px 8px; margin: 0 -8px; }
+  .cheap > div.beat { background: var(--good-bg); box-shadow: inset 0 0 0 2px var(--good); }
+  .cheap > div.beat .sprice { color: var(--good); }
+  .cheap .vs { display: block; font-size: 13px; font-weight: 700; margin-top: 2px; }
   .swhere { font-size: 14px; color: var(--muted); }
   .smeta { font-size: 14px; color: var(--text-2); margin-top: 2px; }
   .smeta b { color: var(--text); }
@@ -312,11 +316,21 @@ function renderStrips() {
     `<div class="snote">Sec 105–125 rows A–V · 200s/300s rows A–B · assigned seats only · max ${fmt$(MAXES.pref)}</div>`);
   stripRow("s-seat4", "Seated · 4 together", C.q4, "q4", "seated", lowOf(L.q4.filter(isAssigned)), MAXES.seat,
     `<div class="snote">Assigned seats only (no Party Deck, TBD or wheelchair) · max ${fmt$(MAXES.seat)}</div>`);
-  // Cheapest assigned seat for 1, 2 and 4 tickets anywhere in the park (same seat rules as Seated).
-  const cheap = [["q1", "Single"], ["q2", "Pair"], ["q4", "4 together"]].map(([q, label]) => ({ label, has: !!L[q], ...lowOf((L[q] || []).filter(isAssigned)) }));
-  $("s-cheap").className = "srow small" + (cheap.some((c) => c.min != null && c.min <= MAXES.seat) ? " buy" : "");
-  $("s-cheap").innerHTML = `<span class="sname">Cheapest real seat · per ticket</span><div class="cheap">` +
-    cheap.map((c) => `<div><span class="sprice">${fmt$(c.min)}</span><span class="sro2">${c.label}${c.min != null ? ` · Sec ${c.section} Row ${c.row}` : c.has ? " · none" : " · starts soon"}</span></div>`).join("") +
+  // Is any real seat cheaper than standing room? Cheapest assigned seat (same rules as Seated) vs cheapest
+  // SRO, per quantity. A seat at or under the SRO price is highlighted.
+  const cheap = [["q1", "Single"], ["q2", "Pair"], ["q4", "4 together"]].map(([q, label]) => ({
+    label, has: !!L[q], seat: lowOf((L[q] || []).filter(isAssigned)), sro: lowOf((L[q] || []).filter(isSro)) }));
+  const beats = (c) => c.seat.min != null && c.sro.min != null && c.seat.min <= c.sro.min;
+  const verdict = (c) => {
+    if (c.seat.min == null || c.sro.min == null) return `<span class="vs flat">${c.has ? (c.sro.min == null ? "no SRO to compare" : "no seats") : "starts soon"}</span>`;
+    const d = c.seat.min - c.sro.min;
+    return d <= 0 ? `<span class="vs down">✓ ${d < 0 ? `${fmt$(-d)} under` : "same as"} SRO ${fmt$(c.sro.min)}</span>`
+      : `<span class="vs flat">+${fmt$(d)} over SRO ${fmt$(c.sro.min)}</span>`;
+  };
+  $("s-cheap").className = "srow small";
+  $("s-cheap").innerHTML = `<span class="sname">Cheapest real seat vs standing room · per ticket</span><div class="cheap">` +
+    cheap.map((c) => `<div class="${beats(c) ? "beat" : ""}"><span class="sprice">${fmt$(c.seat.min)}</span>` +
+      `<span class="sro2">${c.label}${c.seat.min != null ? ` · Sec ${c.seat.section} Row ${c.seat.row}` : ""}</span>${verdict(c)}</div>`).join("") +
     `</div>`;
   // Singles (q1) start with the first reading after they were added; show "—" until then.
   const s4 = lowOf(L.q4.filter(isSro)), s2 = lowOf(L.q2.filter(isSro)), s1 = lowOf((L.q1 || []).filter(isSro)), el = $("s-sro");
