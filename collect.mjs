@@ -71,7 +71,8 @@ async function fetchQty(q) {
         levels[k].count++;
       }
       const summary = { count: rows.length, min: prices[0] ?? null, p25: pct(prices, 0.25), median: pct(prices, 0.5), top: rows.slice(0, TOP_N), levels,
-        seated: low(rows.filter((r) => !isSro(r))), sro: low(rows.filter(isSro)), pref: low(rows.filter(isPreferred)) };
+        seated: low(rows.filter((r) => !isSro(r))), sro: low(rows.filter(isSro)), pref: low(rows.filter(isPreferred)),
+        prefList: rows.filter(isPreferred).map((r) => [r.price, r.section, r.row]) }; // per-listing, for drop detection
       return { summary, rows };
     } catch (e) {
       lastErr = e;

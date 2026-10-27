@@ -87,6 +87,10 @@
   .maxbar .rbtn { padding: 8px 11px; }
   table.lv .more { font-size: 13px; color: var(--text-2); display: block; }
   table.lv td.none { color: var(--muted); }
+  table.lv tr.dropped td:first-child { box-shadow: inset 4px 0 0 var(--good); }
+  table.lv .tag { font-size: 13px; font-weight: 700; display: block; }
+  table.lv .tag.drop { color: var(--good); }
+  table.lv .tag.new { color: var(--pref); }
   .err { color: var(--bad); font-size: 14px; margin-top: 8px; }
   footer { margin-top: 18px; color: var(--muted); font-size: 13px; }
   footer a { color: var(--text-2); }
@@ -289,10 +293,20 @@ function renderPref() {
   const rows = L.q4.filter(isPreferred);
   if (!rows.length) { el.innerHTML = `<tr><td class="none">No preferred 4-together listings right now.</td></tr>`; return; }
   const shown = rows.slice(0, 8);
+  // Last 5 checks before the current one: highest price seen per seat (section+row); unseen seats are new.
+  const past = H.readings.filter((r) => r.q4?.prefList && r.t < L.t).slice(-5);
+  const high = new Map(), key = (s, r) => `${s}|${r}`;
+  for (const r of past) for (const [p, s, row] of r.q4.prefList) high.set(key(s, row), Math.max(high.get(key(s, row)) ?? 0, p));
+  const tag = (price, section, row) => {
+    const k = key(section, row), hi = high.get(k);
+    if (hi > price) return { cls: "dropped", html: `<span class="tag drop">▼${fmt$(hi - price)} last ${past.length} checks</span>` };
+    if (past.length >= 2 && hi == null) return { cls: "", html: `<span class="tag new">new</span>` };
+    return { cls: "", html: "" };
+  };
   el.innerHTML = `<tr><th>Price</th><th>Section</th><th>Row</th></tr>` +
-    shown.map(([price, section, row, group]) => `<tr><td${price <= MAX ? ` class="hit"` : ""}><span class="p">${fmt$(price)}</span></td>` +
-      `<td class="lvname">${section}<span class="sr">${group || ""}</span></td><td>${row}</td></tr>`).join("") +
-    `<tr><td colspan="3" class="sub">${rows.length} preferred listing${rows.length > 1 ? "s" : ""}${rows.length > shown.length ? ` · cheapest ${shown.length} shown` : ""}</td></tr>`;
+    shown.map(([price, section, row, group]) => { const t = tag(price, section, row); return `<tr class="${t.cls}"><td${price <= MAX ? ` class="hit"` : ""}><span class="p">${fmt$(price)}</span>${t.html}</td>` +
+      `<td class="lvname">${section}<span class="sr">${group || ""}</span></td><td>${row}</td></tr>`; }).join("") +
+    `<tr><td colspan="3" class="sub">${rows.length} preferred listing${rows.length > 1 ? "s" : ""}${rows.length > shown.length ? ` · cheapest ${shown.length} shown` : ""}${past.length ? ` · ▼ = cheaper than its high in the last ${past.length} checks` : " · price drops show after the next check"}</td></tr>`;
 }
 
 // Best (cheapest) listing at or under MAX in every section, from latest.json's full listing set.
