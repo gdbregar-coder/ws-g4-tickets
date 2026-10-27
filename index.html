@@ -80,11 +80,15 @@
   table.lv td.hit { background: var(--good-bg); }
   table.lv td.hit .p { color: var(--good); }
   table.lv td.hit .sr { color: #a8e8c2; }
-  .maxbar { margin-top: 12px; display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 10px 14px; }
-  .maxbar label { font-weight: 700; color: var(--text-2); font-size: 16px; }
-  .maxbar input { font: inherit; font-size: 22px; font-weight: 800; width: 100px; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); }
-  .maxbar .steps { margin-left: auto; display: flex; gap: 6px; }
-  .maxbar .rbtn { padding: 8px 11px; }
+  .maxbar { margin-top: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 8px 14px; }
+  .mhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 2px 0 6px; }
+  .mhead span { font-weight: 700; color: var(--text-2); font-size: 15px; }
+  .mrow { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+  .mrow + .mrow { border-top: 1px solid var(--border); }
+  .maxbar label { font-weight: 700; color: var(--text-2); font-size: 15px; display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; }
+  .maxbar input { font: inherit; font-size: 20px; font-weight: 800; width: 92px; padding: 5px 8px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); }
+  .maxbar .steps { display: flex; gap: 6px; }
+  .maxbar .rbtn { padding: 7px 10px; font-size: 15px; }
   table.lv .more { font-size: 13px; color: var(--text-2); display: block; }
   table.lv td.none { color: var(--muted); }
   table.lv tr.dropped td:first-child { box-shadow: inset 4px 0 0 var(--good); }
@@ -118,9 +122,16 @@
   </header>
 
   <div class="maxbar">
-    <label for="max">Max $/ticket</label>
-    <input id="max" type="number" inputmode="numeric" min="0" step="25">
-    <div class="steps"><button class="rbtn" data-step="-50">−50</button><button class="rbtn" data-step="50">+50</button></div>
+    <div class="mhead"><span>Max $/ticket</span><button class="rbtn" id="share">Share these limits</button></div>
+    <div class="mrow"><label for="max-pref"><span class="dot" style="background:var(--pref)"></span>★ Preferred</label>
+      <input id="max-pref" data-cat="pref" type="number" inputmode="numeric" min="0" step="25">
+      <div class="steps"><button class="rbtn" data-cat="pref" data-step="-50">−50</button><button class="rbtn" data-cat="pref" data-step="50">+50</button></div></div>
+    <div class="mrow"><label for="max-seat"><span class="dot" style="background:var(--q4)"></span>Seated</label>
+      <input id="max-seat" data-cat="seat" type="number" inputmode="numeric" min="0" step="25">
+      <div class="steps"><button class="rbtn" data-cat="seat" data-step="-50">−50</button><button class="rbtn" data-cat="seat" data-step="50">+50</button></div></div>
+    <div class="mrow"><label for="max-sro"><span class="dot" style="background:var(--muted)"></span>Standing room</label>
+      <input id="max-sro" data-cat="sro" type="number" inputmode="numeric" min="0" step="25">
+      <div class="steps"><button class="rbtn" data-cat="sro" data-step="-50">−50</button><button class="rbtn" data-cat="sro" data-step="50">+50</button></div></div>
   </div>
 
   <div class="strip">
@@ -136,7 +147,7 @@
   </section>
 
   <section>
-    <h2 id="sec-title">Best by section under max</h2>
+    <h2 id="sec-title">Seated · best by section under max</h2>
     <table id="t-sec" class="lv"></table>
   </section>
 
@@ -144,7 +155,8 @@
   <section><h2>Listing count</h2><div class="chartbox"><canvas id="c-n"></canvas></div></section>
 
   <footer>
-    Seated = everything except standing room. Preferred = Sec 105–125 rows A–V (first 20) or any 200s/300s section rows A–B (first 2), excluding Party Deck;
+    Seated = assigned seats only: a numbered section and a real row (no Party Deck, section ranges with row TBD, or wheelchair rows).
+    Preferred = seated in Sec 105–125 rows A–V (first 20) or any 200s/300s section rows A–B (first 2);
     rows skip I and O. Readings every minute. Baseline = first reading. Trailing avg = previous 3 readings.
     ▲/▼ compare the current reading to each. Read-only tracker — never buys anything.
     <span id="src"></span>
@@ -170,22 +182,42 @@ function rowNum(r) {
   return i < 0 ? null : i + 1 + (r.length === 2 ? ROWS.length : 0);
 }
 const isSro = ([, section, , group]) => section === "SRO" || group === "Standing Room Only";
-function isPreferred([, section, row, group]) {
-  if (!/^\d+$/.test(section) || group === "Party Deck") return false;
-  const s = Number(section), n = rowNum(row);
-  return n != null && ((s >= 105 && s <= 125 && n <= 20) || (s >= 200 && s < 400 && n <= 2));
+// Seated = a real assigned seat: numbered section and a normal row. Excludes Party Deck (unassigned),
+// section ranges like "314–322" with row TBD, and wheelchair rows (WCH).
+const isAssigned = ([, section, row, group]) => /^\d+$/.test(section) && rowNum(row) != null && group !== "Party Deck";
+function isPreferred(l) {
+  if (!isAssigned(l)) return false;
+  const s = Number(l[1]), n = rowNum(l[2]);
+  return (s >= 105 && s <= 125 && n <= 20) || (s >= 200 && s < 400 && n <= 2);
 }
 // latest.json rows are price-sorted, so the first match is the cheapest.
 const lowOf = (rs) => ({ min: rs[0]?.[0] ?? null, section: rs[0]?.[1] ?? "", row: rs[0]?.[2] ?? "", count: rs.length });
 
 function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch { return null; } }
 const qp = new URLSearchParams(location.search);
-let MAX = Number(qp.get("max") || store("maxPrice") || DEFAULT_MAX);
-$("max").value = MAX;
-document.querySelectorAll("[data-step]").forEach((b) => b.addEventListener("click", () => {
-  MAX = Math.max(25, MAX + Number(b.dataset.step)); $("max").value = MAX; store("maxPrice", String(MAX)); render();
-}));
-$("max").addEventListener("change", () => { const v = Number($("max").value); if (v > 0) { MAX = v; store("maxPrice", String(v)); render(); } });
+// One max per category. A link's ?pref=&seat=&sro= wins (so a group can share limits), then this phone's
+// last values, then the old single max, then the default. Changes go back into the address bar.
+const MAXES = {};
+for (const k of ["pref", "seat", "sro"]) MAXES[k] = Number(qp.get(k) || store("max_" + k) || qp.get("max") || store("maxPrice") || DEFAULT_MAX);
+const limitsUrl = () => `${location.origin}${location.pathname}?pref=${MAXES.pref}&seat=${MAXES.seat}&sro=${MAXES.sro}`;
+function setMax(k, v) {
+  if (!(v > 0)) return;
+  MAXES[k] = v; $("max-" + k).value = v; store("max_" + k, String(v));
+  try { history.replaceState(null, "", limitsUrl()); } catch {}
+  render();
+}
+for (const k of ["pref", "seat", "sro"]) {
+  $("max-" + k).value = MAXES[k];
+  $("max-" + k).addEventListener("change", (e) => setMax(k, Number(e.target.value)));
+}
+document.querySelectorAll("[data-step]").forEach((b) => b.addEventListener("click", () => setMax(b.dataset.cat, Math.max(25, MAXES[b.dataset.cat] + Number(b.dataset.step)))));
+$("share").addEventListener("click", async () => {
+  const url = limitsUrl(), b = $("share");
+  try {
+    if (navigator.share) await navigator.share({ title: "WS Game 4 ticket limits", url });
+    else { await navigator.clipboard.writeText(url); b.textContent = "✓ Link copied"; setTimeout(() => (b.textContent = "Share these limits"), 2500); }
+  } catch {}
+});
 // Manual refresh: show it's working, and say so even when no newer reading exists yet.
 async function manualRefresh() {
   const btns = [$("refresh-top")];
@@ -259,9 +291,9 @@ function trend(q, sub, cur) {
   return `<div class="smeta">Low ${delta(cur.min, sval(R[0], q, sub, "min"), "base", true)} · ${delta(cur.min, prev.length ? t("min") : null, "trail", true)}</div>
     <div class="smeta"><b>${cur.count}</b> listed ${delta(cur.count, sval(R[0], q, sub, "count"), "base", false)} · ${delta(cur.count, prev.length ? t("count") : null, "trail", false)}</div>`;
 }
-function stripRow(id, label, color, q, sub, cur, note = "") {
+function stripRow(id, label, color, q, sub, cur, max, note = "") {
   const el = $(id);
-  el.className = "srow" + (cur.min != null && cur.min <= MAX ? " buy" : "");
+  el.className = "srow" + (cur.min != null && cur.min <= max ? " buy" : "");
   el.innerHTML = `
     <div class="sline">
       <span class="sname"><span class="dot" style="background:${color}"></span>${label}</span>
@@ -272,12 +304,12 @@ function stripRow(id, label, color, q, sub, cur, note = "") {
 // Current values come from latest.json (every listing); ▲/▼ trends from history.json.
 function renderStrips() {
   if (!L) { $("s-pref").innerHTML = `<div class="sub">Seat breakdown loads with the latest listings…</div>`; return; }
-  const seated = (q) => L[q].filter((r) => !isSro(r));
-  stripRow("s-pref", "★ Preferred · 4 together", C.pref, "q4", "pref", lowOf(L.q4.filter(isPreferred)),
-    `<div class="snote">Sec 105–125 rows A–V · 200s/300s rows A–B · no Party Deck · any price</div>`);
-  stripRow("s-seat4", "Seated · 4 together", C.q4, "q4", "seated", lowOf(seated("q4")));
+  stripRow("s-pref", "★ Preferred · 4 together", C.pref, "q4", "pref", lowOf(L.q4.filter(isPreferred)), MAXES.pref,
+    `<div class="snote">Sec 105–125 rows A–V · 200s/300s rows A–B · assigned seats only · max ${fmt$(MAXES.pref)}</div>`);
+  stripRow("s-seat4", "Seated · 4 together", C.q4, "q4", "seated", lowOf(L.q4.filter(isAssigned)), MAXES.seat,
+    `<div class="snote">Assigned seats only (no Party Deck, TBD or wheelchair) · max ${fmt$(MAXES.seat)}</div>`);
   const s4 = lowOf(L.q4.filter(isSro)), s2 = lowOf(L.q2.filter(isSro)), el = $("s-sro");
-  el.className = "srow small" + ([s4.min, s2.min].some((v) => v != null && v <= MAX) ? " buy" : "");
+  el.className = "srow small" + ([s4.min, s2.min].some((v) => v != null && v <= MAXES.sro) ? " buy" : "");
   el.innerHTML = `
     <div class="sline">
       <span class="sname">Standing room</span>
@@ -286,7 +318,7 @@ function renderStrips() {
     </div>`;
 }
 
-// Cheapest preferred 4-together listings regardless of MAX.
+// Cheapest preferred 4-together listings, any price; at or under the preferred max is highlighted.
 function renderPref() {
   const el = $("t-pref");
   if (!L) { el.innerHTML = ""; return; }
@@ -311,20 +343,21 @@ function renderPref() {
     return { cls: "", html: "" };
   };
   el.innerHTML = `<tr><th>Price</th><th>Section</th><th>Row</th></tr>` +
-    shown.map(([price, section, row, group]) => { const t = tag(price, section, row); return `<tr class="${t.cls}"><td${price <= MAX ? ` class="hit"` : ""}><span class="p">${fmt$(price)}</span>${t.html}</td>` +
+    shown.map(([price, section, row, group]) => { const t = tag(price, section, row); return `<tr class="${t.cls}"><td${price <= MAXES.pref ? ` class="hit"` : ""}><span class="p">${fmt$(price)}</span>${t.html}</td>` +
       `<td class="lvname">${section}<span class="sr">${group || ""}</span></td><td>${row}</td></tr>`; }).join("") +
     `<tr><td colspan="3" class="sub">${rows.length} preferred listing${rows.length > 1 ? "s" : ""}${rows.length > shown.length ? ` · cheapest ${shown.length} shown` : ""}${past.length ? ` · ▼ cheaper · ▲ pricier · new = arrived, vs. the ${span}` : " · changes show after the next check"}</td></tr>`;
 }
 
-// Best (cheapest) listing at or under MAX in every section, from latest.json's full listing set.
+// Best (cheapest) seated listing at or under the seated max in every section, from latest.json.
 function renderSections() {
   renderPref();
-  const el = $("t-sec");
-  $("sec-title").textContent = `Best by section at or under ${fmt$(MAX)}`;
+  const el = $("t-sec"), MAX = MAXES.seat;
+  $("sec-title").textContent = `Seated · best by section at or under ${fmt$(MAX)}`;
   if (!L) { el.innerHTML = `<tr><td class="sub">Section list loads with the next reading.</td></tr>`; return; }
-  // 4 together only (pairs are shown just for standing room, in the strip above).
+  // 4 together, assigned seats only (pairs and standing room are in the strip above).
+  const seated = L.q4.filter(isAssigned);
   const secs = new Map();
-  for (const [price, section, row, group] of L.q4) {
+  for (const [price, section, row, group] of seated) {
     if (price > MAX) continue;
     const k = section || "?";
     if (!secs.has(k)) secs.set(k, { section: k, group, best: { price, row }, n: 0 });
@@ -333,7 +366,7 @@ function renderSections() {
   const hits = [...secs.values()].sort((a, b) => a.best.price - b.best.price);
   const age = Math.floor((Date.now() - Date.parse(L.t)) / 60000);
   if (!hits.length) {
-    const c4 = L.q4[0];
+    const c4 = seated[0];
     el.innerHTML = `<tr><td class="none">Nothing at or under ${fmt$(MAX)} right now.<br>Closest: ${c4 ? `4 together ${fmt$(c4[0])} Sec ${c4[1]} Row ${c4[2]}` : "no 4-together listings"}</td></tr>`;
     return;
   }
@@ -388,7 +421,8 @@ function priceDatasets(q) {
     line("Median", s("median"), alpha(C[q], 0.4), { borderWidth: 2 }),
     hline("Baseline low", val(R[0], q, "min"), xs, C.text2, { borderDash: [6, 5], borderWidth: 1.5 }),
     line("Trail avg (low)", trail, C.text2, { borderWidth: 1 }),
-    hline(`Max ${fmt$(MAX)}`, MAX, xs, C.max, { borderWidth: 2 }),
+    ...(q === "q4" ? [hline(`Preferred max ${fmt$(MAXES.pref)}`, MAXES.pref, xs, C.pref, { borderDash: [3, 3], borderWidth: 2 })] : []),
+    hline(`Seated max ${fmt$(MAXES.seat)}`, MAXES.seat, xs, C.max, { borderWidth: 2 }),
   ];
 }
 function countDatasets() {
