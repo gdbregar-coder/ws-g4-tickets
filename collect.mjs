@@ -73,7 +73,7 @@ function publish(reading) {
   if (!process.env.GITHUB_ACTIONS) return;
   const sh = (c) => execSync(c, { stdio: "inherit" });
   sh("git add history.json");
-  sh(`git commit -q -m "reading ${reading.t} q4 low $${reading.q4.min} q2 low $${reading.q2.min}"`);
+  execSync("git commit -q -F -", { input: `reading ${reading.t} q4 low $${reading.q4.min} q2 low $${reading.q2.min}\n`, stdio: ["pipe", "inherit", "inherit"] });
   for (let i = 0; i < 4; i++) {
     try { sh("git pull -q --rebase origin main && git push -q origin HEAD:main"); return; }
     catch { execSync("sleep 5"); }
