@@ -160,7 +160,6 @@
 
   <div class="strip">
     <div class="srow" id="s-pref"></div>
-    <div class="srow" id="s-seat4"></div>
     <div class="srow" id="s-cheap"></div>
   </div>
   <div class="err" id="err"></div>
@@ -341,8 +340,6 @@ function stripRow(id, label, color, q, sub, cur, max, note = "") {
 function renderStrips() {
   if (!L) { $("s-pref").innerHTML = `<div class="sub">Seat breakdown loads with the latest listings…</div>`; return; }
   stripRow("s-pref", "★ Preferred · 4 together", C.pref, "q4", "pref", lowOf(L.q4.filter(isPreferred)), MAXES.pref,
-    );
-  stripRow("s-seat4", "Seated · 4 together", C.q4, "q4", "seated", lowOf(L.q4.filter(isAssigned)), MAXES.seat,
     );
   // Cheapest per ticket: standing room (the price to beat) and the cheapest real seat for 1, 2 and 4
   // tickets (same rules as Seated). Each seat is compared with standing room for the same quantity.
