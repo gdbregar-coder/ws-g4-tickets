@@ -171,7 +171,20 @@ async function alert(latest) {
 // Market trend (mirrors index.html): 4-together 25th pct -> 5-reading rolling median -> time-aware Holt
 // linear trend. "watch" = slope > +2%/hr for 10 min ("Turning up", page only); "rising" = > +3%/hr for
 // 15 min and at least 3% above the day's lowest trend level (a meaningful upturn; this is what alerts).
-const TREND = { alpha: 0.08, beta: 0.03, win: 5, fallPct: -1, watch: [2, 10], rise: [3, 15], riseOffLow: 3 };
+const TREND = { alpha: 0.08, beta: 0.03, win: 5, fallPct: -3, recentMin: 30, watch: [2, 10], rise: [3, 15], riseOffLow: 3 };
+// Falling vs flat comes from the last 30 minutes directly: a Theil-Sen line (median of all pairwise
+// slopes, so a few odd minutes don't matter) through the 25th pct, in %/hr. The Holt slope lags for a
+// long time after a steep slide, which kept the status on "Falling" over a flat bottom.
+function recentSlope(R) {
+  const end = Date.parse(R.at(-1)?.t ?? 0), pts = R.filter((r) => r.q4?.p25 != null && Date.parse(r.t) >= end - TREND.recentMin * 60000)
+    .map((r) => [Date.parse(r.t) / 60000, r.q4.p25]);
+  if (pts.length < 10) return null;
+  const sl = [];
+  for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) if (pts[j][0] > pts[i][0]) sl.push((pts[j][1] - pts[i][1]) / (pts[j][0] - pts[i][0]));
+  sl.sort((a, b) => a - b);
+  const ys = pts.map((p) => p[1]).sort((a, b) => a - b);
+  return (sl[Math.floor(sl.length / 2)] * 60) / ys[Math.floor(ys.length / 2)] * 100;
+}
 function marketTrend(R) {
   const pts = [], buf = [];
   let lvl = null, slope = 0, prev = null;
@@ -193,11 +206,12 @@ function marketTrend(R) {
     return since == null ? 0 : (pts.at(-1).t - since) / 60000;
   };
   const last = pts.at(-1), now = last ? pct(last) : 0, low = Math.min(...pts.map((p) => p.lvl));
+  const recent = recentSlope(R), dir = recent ?? now; // fall back to the Holt slope early in the day
   const state = !last || pts.length < TREND.win ? "flat"
     : held(TREND.rise[0]) >= TREND.rise[1] && last.lvl >= low * (1 + TREND.riseOffLow / 100) ? "rising"
-    : held(TREND.watch[0]) >= TREND.watch[1] ? "watch"
-    : now <= TREND.fallPct ? "falling" : "flat";
-  return { last, perHr: last ? last.slope * 60 : 0, pctHr: now, offLow: last ? (last.lvl / low - 1) * 100 : 0, state };
+    : held(TREND.watch[0]) >= TREND.watch[1] || dir >= -TREND.fallPct ? "watch"
+    : dir <= TREND.fallPct ? "falling" : "flat";
+  return { last, perHr: last ? last.slope * 60 : 0, pctHr: now, recent, offLow: last ? (last.lvl / low - 1) * 100 : 0, state };
 }
 
 // CUSUM change detector (independent check on the upturn). Input: per-minute log change of the
