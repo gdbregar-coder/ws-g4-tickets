@@ -137,8 +137,9 @@ async function alert(latest) {
 }
 
 // Market trend (mirrors index.html): 4-together 25th pct -> 5-reading rolling median -> time-aware Holt
-// linear trend. "watch" = slope > +2%/hr for 10 min ("Turning up"); "rising" = > +2.5%/hr for 15 min.
-const TREND = { alpha: 0.08, beta: 0.03, win: 5, fallPct: -1, watch: [2, 10], rise: [2.5, 15] };
+// linear trend. "watch" = slope > +2%/hr for 10 min ("Turning up", page only); "rising" = > +3%/hr for
+// 15 min and at least 3% above the day's lowest trend level (a meaningful upturn; this is what alerts).
+const TREND = { alpha: 0.08, beta: 0.03, win: 5, fallPct: -1, watch: [2, 10], rise: [3, 15], riseOffLow: 3 };
 function marketTrend(R) {
   const pts = [], buf = [];
   let lvl = null, slope = 0, prev = null;
@@ -159,21 +160,21 @@ function marketTrend(R) {
     for (const p of pts) since = pct(p) >= min ? since ?? p.t : null;
     return since == null ? 0 : (pts.at(-1).t - since) / 60000;
   };
-  const last = pts.at(-1), now = last ? pct(last) : 0;
+  const last = pts.at(-1), now = last ? pct(last) : 0, low = Math.min(...pts.map((p) => p.lvl));
   const state = !last || pts.length < TREND.win ? "flat"
-    : held(TREND.rise[0]) >= TREND.rise[1] ? "rising"
+    : held(TREND.rise[0]) >= TREND.rise[1] && last.lvl >= low * (1 + TREND.riseOffLow / 100) ? "rising"
     : held(TREND.watch[0]) >= TREND.watch[1] ? "watch"
     : now <= TREND.fallPct ? "falling" : "flat";
-  return { last, perHr: last ? last.slope * 60 : 0, pctHr: now, state };
+  return { last, perHr: last ? last.slope * 60 : 0, pctHr: now, offLow: last ? (last.lvl / low - 1) * 100 : 0, state };
 }
 
-// Alert once when the trend first turns up (watch or rising). Re-arms only after the trend is falling
-// again, so wobbling between flat and turning up doesn't send repeat pings. Separate issue from listings.
+// Alert once when the trend turns up meaningfully ("rising"). Re-arms only after the trend is falling
+// again, so wobble around the turn doesn't send repeat pings. Separate issue from the listing alerts.
 async function trendAlert(latest) {
   if (!process.env.GH_TOKEN || !process.env.GITHUB_REPOSITORY) return;
   const state = existsSync(ALERT) ? JSON.parse(readFileSync(ALERT, "utf8")) : { issue: null, seen: [] };
   const m = marketTrend(load().readings);
-  const up = m.state === "watch" || m.state === "rising";
+  const up = m.state === "rising";
   if (m.state === "falling" && state.trendUp) { state.trendUp = false; writeFileSync(ALERT, JSON.stringify(state) + "\n"); }
   if (!up || state.trendUp) return;
   const owner = process.env.GITHUB_REPOSITORY_OWNER, $ = (v) => "$" + Math.round(v).toLocaleString("en-US");
@@ -181,8 +182,8 @@ async function trendAlert(latest) {
   const at = new Date(latest.t).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
   const seat = latest.q4.find(([, section, row, group]) => isAssigned({ section, row, group }));
   const pref = latest.q4.find(([, section, row, group]) => isPreferred({ section, row, group }));
-  const body = `@${owner} market trend is **${m.state === "rising" ? "rising (buy window)" : "turning up"}** (${at} ET): ` +
-    `${$(m.last.lvl)} for 4 together (25th pct), ▲${$(m.perHr)}/hr (+${m.pctHr.toFixed(1)}%/hr).\n\n` +
+  const body = `@${owner} market trend is **turning up meaningfully** (${at} ET): ` +
+    `${$(m.last.lvl)} for 4 together (25th pct), ▲${$(m.perHr)}/hr (+${m.pctHr.toFixed(1)}%/hr), ${m.offLow.toFixed(1)}% above today's low.\n\n` +
     (pref ? `- Cheapest preferred 4 together: **$${pref[0]}** · Sec ${pref[1]} Row ${pref[2]}\n` : "") +
     (seat ? `- Cheapest real seat 4 together: **$${seat[0]}** · Sec ${seat[1]} Row ${seat[2]}\n` : "") + `\n${page}`;
   try {

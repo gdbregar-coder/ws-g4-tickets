@@ -197,7 +197,7 @@
     rows skip I and O. Readings every minute. Baseline = first reading. Trailing avg = previous 3 readings.
     ▲/▼ compare the current reading to each.
     Market trend = the 4-together 25th-percentile price, spike-filtered and smoothed (Holt linear trend, looks only backward).
-    "Turning up" = rising faster than 2%/hr for 10 min; "Rising" = faster than 2.5%/hr for 15 min. On Game 4 those would have fired at 5:33 PM and 6:48 PM. Read-only tracker — never buys anything.
+    "Turning up" = rising faster than 2%/hr for 10 min (early heads-up). "Rising · buy window" = faster than 3%/hr for 15 min and at least 3% above the day's low; this sends the phone alert. On Game 4 those would have fired at 5:33 PM (a false start) and 6:48 PM. Read-only tracker — never buys anything.
     <span id="src"></span>
   </footer></details>
 </main>
@@ -467,7 +467,8 @@ const alpha = (hex, a) => hex + Math.round(a * 255).toString(16).padStart(2, "0"
 // cheapest listing), passed through a 5-reading rolling median to drop one-minute spikes, then a
 // time-aware Holt linear trend (exponentially smoothed level + slope). It only looks backward, so the
 // line never redraws history. Tuned on Game 4: it bottomed ~4:30-5 PM and turned up ~6:30 PM.
-const TREND = { alpha: 0.08, beta: 0.03, win: 5, fallPct: -1, watch: [2, 10], rise: [2.5, 15] }; // %/hr, minutes
+// "Rising" (the alert) also needs the trend 3%+ above the day's low, so a small bounce doesn't count.
+const TREND = { alpha: 0.08, beta: 0.03, win: 5, fallPct: -1, watch: [2, 10], rise: [3, 15], riseOffLow: 3 }; // %/hr, minutes
 function marketTrend(R) {
   const pts = [], buf = [];
   let lvl = null, slope = 0, prev = null;
@@ -489,9 +490,9 @@ function marketTrend(R) {
     for (const p of pts) since = pct(p) >= min ? since ?? p.t : null;
     return since == null ? 0 : (pts.at(-1).t - since) / 60000;
   };
-  const last = pts.at(-1), now = last ? pct(last) : 0;
+  const last = pts.at(-1), now = last ? pct(last) : 0, low = Math.min(...pts.map((p) => p.lvl));
   const state = !last || pts.length < TREND.win ? "flat"
-    : held(TREND.rise[0]) >= TREND.rise[1] ? "rising"
+    : held(TREND.rise[0]) >= TREND.rise[1] && last.lvl >= low * (1 + TREND.riseOffLow / 100) ? "rising"
     : held(TREND.watch[0]) >= TREND.watch[1] ? "watch"
     : now <= TREND.fallPct ? "falling" : "flat";
   return { pts, last, perHr: last ? last.slope * 60 : 0, pctHr: now, state };
