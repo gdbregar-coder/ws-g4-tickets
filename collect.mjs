@@ -39,9 +39,9 @@ function isPreferred(r) {
 }
 // ★★★★ Brewers dugout: the visitors' dugout is on the 3rd-base side in front of odd sections 111-117
 // (per a fan seating site; unconfirmed by the Rays). Zone = those plus one section either side, 109-119,
-// rows A-Y (first 23), assigned seats only. Mirrored in index.html.
-const DUGOUT = { sections: [109, 111, 113, 115, 117, 119], maxRow: 23, alertUnder: 750 };
-const isDugout = (r) => isAssigned(r) && DUGOUT.sections.includes(Number(r.section)) && rowNum(r.row) <= DUGOUT.maxRow;
+// rows G-Y (7th-23rd), assigned seats only. Mirrored in index.html.
+const DUGOUT = { sections: [109, 111, 113, 115, 117, 119], minRow: 7, maxRow: 23, alertUnder: 750 }; // rows G-Y
+const isDugout = (r) => isAssigned(r) && DUGOUT.sections.includes(Number(r.section)) && rowNum(r.row) >= DUGOUT.minRow && rowNum(r.row) <= DUGOUT.maxRow;
 // Cheapest of a (price-sorted) subset.
 const low = (rs) => ({ min: rs[0]?.price ?? null, section: rs[0]?.section ?? "", row: rs[0]?.row ?? "", count: rs.length });
 

@@ -175,6 +175,11 @@
   <div class="err" id="err"></div>
 
   <section>
+    <h2>★★★★ Brewers dugout · 4 together · any price</h2>
+    <table id="t-dug" class="lv"></table>
+  </section>
+
+  <section>
     <h2 id="pref-title">★ Preferred · 4 together · any price</h2>
     <table id="t-pref" class="lv"></table>
   </section>
@@ -195,7 +200,7 @@
     Brewers @ Rays · Tropicana Field · Wed Oct 28 · 8:00 PM ET. Game 4 data is kept in g4/. Prices are Gametime all-in, per ticket.
     Seated = assigned seats only: a numbered section and a real row (no Party Deck, section ranges with row TBD, or wheelchair rows).
     Preferred = seated in Sec 100–126 rows A–Y (first 23) or any 200s/300s section rows A–C (first 3);
-    ★★★★ Brewers dugout = Sec 109, 111, 113, 115, 117, 119 rows A–Y (visitors' dugout is on the 3rd-base side in front of 111–117, per a fan seating site; check the Rays' map). Highlighted under $750, which also sends an alert;
+    ★★★★ Brewers dugout = Sec 109, 111, 113, 115, 117, 119 rows G–Y (visitors' dugout is on the 3rd-base side in front of 111–117, per a fan seating site; check the Rays' map). Highlighted under $750, which also sends an alert;
     rows skip I and O. Readings every minute. Baseline = first reading. Trailing avg = previous 3 readings.
     ▲/▼ compare the current reading to each.
     Market trend = the 4-together 25th-percentile price, spike-filtered and smoothed (Holt linear trend, looks only backward).
@@ -232,9 +237,9 @@ function isPreferred(l) {
   const s = Number(l[1]), n = rowNum(l[2]);
   return (s >= 100 && s <= 126 && n <= 23) || (s >= 200 && s < 400 && n <= 3);
 }
-// ★★★★ Brewers dugout zone (mirrors collect.mjs): odd sections 109-119 on the 3rd-base side, rows A-Y.
-const DUGOUT = { sections: [109, 111, 113, 115, 117, 119], maxRow: 23, alertUnder: 750 };
-const isDugout = (l) => isAssigned(l) && DUGOUT.sections.includes(Number(l[1])) && rowNum(l[2]) <= DUGOUT.maxRow;
+// ★★★★ Brewers dugout zone (mirrors collect.mjs): odd sections 109-119 on the 3rd-base side, rows G-Y.
+const DUGOUT = { sections: [109, 111, 113, 115, 117, 119], minRow: 7, maxRow: 23, alertUnder: 750 }; // rows G-Y
+const isDugout = (l) => isAssigned(l) && DUGOUT.sections.includes(Number(l[1])) && rowNum(l[2]) >= DUGOUT.minRow && rowNum(l[2]) <= DUGOUT.maxRow;
 // latest.json rows are price-sorted, so the first match is the cheapest.
 const lowOf = (rs) => ({ min: rs[0]?.[0] ?? null, section: rs[0]?.[1] ?? "", row: rs[0]?.[2] ?? "", count: rs.length });
 
@@ -280,7 +285,7 @@ $("refresh-top").addEventListener("click", manualRefresh);
 $("charts").open = store("chartsOpen") === "1";
 $("charts").addEventListener("toggle", () => { store("chartsOpen", $("charts").open ? "1" : "0"); if ($("charts").open) render(); });
 // Long tables show their top rows; "Show all" expands until the page is reloaded.
-const SHOW_ALL = { pref: false, sec: false }, TOP = 5;
+const SHOW_ALL = { dug: false, pref: false, sec: false }, TOP = 5;
 document.addEventListener("click", (e) => { const k = e.target.dataset?.more; if (k) { SHOW_ALL[k] = !SHOW_ALL[k]; renderSections(); } });
 const moreBtn = (k, n) => n > TOP ? ` · <button class="linkbtn" data-more="${k}">${SHOW_ALL[k] ? "Show fewer" : `Show all ${n}`}</button>` : "";
 
@@ -381,15 +386,13 @@ function renderStrips() {
     `</div>`;
 }
 
-// Cheapest preferred 4-together listings, any price; at or under the preferred max is highlighted.
-function renderPref() {
-  const el = $("t-pref");
+// A 4-together listing table, any price, cheapest first; at or under `max` is highlighted. Tags compare each
+// seat (section+row) with its cheapest price the first time it appears in the last 5 checks (from the
+// per-reading preferred list, which also covers the dugout zone); seats not in those checks are new.
+function renderList(el, rows, { more, max, noun, empty, label }) {
   if (!L) { el.innerHTML = ""; return; }
-  const rows = L.q4.filter(isPreferred);
-  if (!rows.length) { el.innerHTML = `<tr><td class="none">No preferred 4-together listings right now.</td></tr>`; return; }
-  const shown = SHOW_ALL.pref ? rows : rows.slice(0, TOP);
-  // Last 5 checks before the current one: each seat's (section+row) cheapest price the first time it appears
-  // in that window. Change = now vs then; seats not in any of those checks are new.
+  if (!rows.length) { el.innerHTML = `<tr><td class="none">${empty}</td></tr>`; return; }
+  const shown = SHOW_ALL[more] ? rows : rows.slice(0, TOP);
   const past = H.readings.filter((r) => r.q4?.prefList && r.t < L.t).slice(-5);
   const first = new Map(), key = (s, r) => `${s}|${r}`;
   for (const r of past) {
@@ -406,9 +409,15 @@ function renderPref() {
     return { cls: "", html: "" };
   };
   el.innerHTML = `<tr><th>Price</th><th>Section</th><th>Row</th></tr>` +
-    shown.map(([price, section, row, group]) => { const t = tag(price, section, row); return `<tr class="${t.cls}"><td${price <= MAXES.pref ? ` class="hit"` : ""}><span class="p">${fmt$(price)}</span>${t.html}</td>` +
-      `<td class="lvname">${section}<span class="sr">${isDugout([price, section, row, group]) ? "★★★★ dugout" : group || ""}</span></td><td>${row}</td></tr>`; }).join("") +
-    `<tr><td colspan="3" class="sub">${rows.length} preferred listing${rows.length > 1 ? "s" : ""}${moreBtn("pref", rows.length)}${past.length ? ` · ▼▲ new vs. the ${span}` : ""}</td></tr>`;
+    shown.map((l) => { const [price, section, row] = l, t = tag(price, section, row); return `<tr class="${t.cls}"><td${price <= max ? ` class="hit"` : ""}><span class="p">${fmt$(price)}</span>${t.html}</td>` +
+      `<td class="lvname">${section}<span class="sr">${label(l)}</span></td><td>${row}</td></tr>`; }).join("") +
+    `<tr><td colspan="3" class="sub">${rows.length} ${noun}${rows.length > 1 ? "s" : ""}${moreBtn(more, rows.length)}${past.length ? ` · ▼▲ new vs. the ${span}` : ""}</td></tr>`;
+}
+function renderPref() {
+  renderList($("t-dug"), L ? L.q4.filter(isDugout) : [], { more: "dug", max: DUGOUT.alertUnder, noun: "dugout listing",
+    empty: "No 4-together listings in the dugout zone right now.", label: (l) => l[3] || "" });
+  renderList($("t-pref"), L ? L.q4.filter(isPreferred) : [], { more: "pref", max: MAXES.pref, noun: "preferred listing",
+    empty: "No preferred 4-together listings right now.", label: (l) => (isDugout(l) ? "★★★★ dugout" : l[3] || "") });
 }
 
 // Best (cheapest) seated listing at or under the seated max in every section, from latest.json.
