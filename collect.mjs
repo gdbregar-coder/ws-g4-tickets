@@ -20,7 +20,7 @@ const ALERT_UNDER = Number(process.env.ALERT_UNDER || 1000); // $/ticket, prefer
 const ALERT = new URL("./alert.json", import.meta.url);     // listings already alerted on + issue number
 
 // Seat classes. Rows are letters skipping I and O (A..Z then AA..ZZ) or plain numbers.
-// Preferred = Sec 100-126 rows 1-23 (A-Y), or any 200s/300s section rows 1-3 (A-C), excluding Party Deck. Mirrored in index.html.
+// Preferred = Sec 100-126 rows 1-23 (A-Y), or any 200s/300s section rows 1-2 (A-B), excluding Party Deck. Mirrored in index.html.
 const ROWS = "ABCDEFGHJKLMNPQRSTUVWXYZ";
 function rowNum(r) {
   r = String(r).trim().toUpperCase();
@@ -35,7 +35,7 @@ const isAssigned = (r) => /^\d+$/.test(r.section) && rowNum(r.row) != null && r.
 function isPreferred(r) {
   if (!isAssigned(r)) return false;
   const s = Number(r.section), n = rowNum(r.row);
-  return (s >= 100 && s <= 126 && n <= 23) || (s >= 200 && s < 400 && n <= 3);
+  return (s >= 100 && s <= 126 && n <= 23) || (s >= 200 && s < 400 && n <= 2);
 }
 // ★★★★ Brewers dugout: the visitors' dugout is on the 3rd-base side in front of odd sections 111-117
 // (per a fan seating site; unconfirmed by the Rays). Zone = those plus one section either side, 109-119,
