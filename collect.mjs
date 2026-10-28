@@ -136,6 +136,64 @@ async function alert(latest) {
   } catch (e) { console.error("alert failed:", e.message); }
 }
 
+// Market trend (mirrors index.html): 4-together 25th pct -> 5-reading rolling median -> time-aware Holt
+// linear trend. "watch" = slope > +2%/hr for 10 min ("Turning up"); "rising" = > +2.5%/hr for 15 min.
+const TREND = { alpha: 0.08, beta: 0.03, win: 5, fallPct: -1, watch: [2, 10], rise: [2.5, 15] };
+function marketTrend(R) {
+  const pts = [], buf = [];
+  let lvl = null, slope = 0, prev = null;
+  for (const r of R) {
+    const t = Date.parse(r.t), raw = r.q4?.p25;
+    if (raw == null) continue;
+    buf.push(raw); if (buf.length > TREND.win) buf.shift();
+    const y = [...buf].sort((a, b) => a - b)[Math.floor(buf.length / 2)];
+    if (lvl == null) { lvl = y; prev = t; pts.push({ t, lvl, slope }); continue; }
+    const dt = Math.max(1, (t - prev) / 60000); prev = t;
+    const a = 1 - (1 - TREND.alpha) ** dt, b = 1 - (1 - TREND.beta) ** dt;
+    const next = a * y + (1 - a) * (lvl + slope * dt);
+    slope = b * (next - lvl) / dt + (1 - b) * slope; lvl = next;
+    pts.push({ t, lvl, slope });
+  }
+  const pct = (p) => (p.slope * 60) / p.lvl * 100, held = (min) => {
+    let since = null;
+    for (const p of pts) since = pct(p) >= min ? since ?? p.t : null;
+    return since == null ? 0 : (pts.at(-1).t - since) / 60000;
+  };
+  const last = pts.at(-1), now = last ? pct(last) : 0;
+  const state = !last || pts.length < TREND.win ? "flat"
+    : held(TREND.rise[0]) >= TREND.rise[1] ? "rising"
+    : held(TREND.watch[0]) >= TREND.watch[1] ? "watch"
+    : now <= TREND.fallPct ? "falling" : "flat";
+  return { last, perHr: last ? last.slope * 60 : 0, pctHr: now, state };
+}
+
+// Alert once when the trend first turns up (watch or rising). Re-arms only after the trend is falling
+// again, so wobbling between flat and turning up doesn't send repeat pings. Separate issue from listings.
+async function trendAlert(latest) {
+  if (!process.env.GH_TOKEN || !process.env.GITHUB_REPOSITORY) return;
+  const state = existsSync(ALERT) ? JSON.parse(readFileSync(ALERT, "utf8")) : { issue: null, seen: [] };
+  const m = marketTrend(load().readings);
+  const up = m.state === "watch" || m.state === "rising";
+  if (m.state === "falling" && state.trendUp) { state.trendUp = false; writeFileSync(ALERT, JSON.stringify(state) + "\n"); }
+  if (!up || state.trendUp) return;
+  const owner = process.env.GITHUB_REPOSITORY_OWNER, $ = (v) => "$" + Math.round(v).toLocaleString("en-US");
+  const page = `https://${owner}.github.io/${process.env.GITHUB_REPOSITORY.split("/")[1]}/`;
+  const at = new Date(latest.t).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
+  const seat = latest.q4.find(([, section, row, group]) => isAssigned({ section, row, group }));
+  const pref = latest.q4.find(([, section, row, group]) => isPreferred({ section, row, group }));
+  const body = `@${owner} market trend is **${m.state === "rising" ? "rising (buy window)" : "turning up"}** (${at} ET): ` +
+    `${$(m.last.lvl)} for 4 together (25th pct), ▲${$(m.perHr)}/hr (+${m.pctHr.toFixed(1)}%/hr).\n\n` +
+    (pref ? `- Cheapest preferred 4 together: **$${pref[0]}** · Sec ${pref[1]} Row ${pref[2]}\n` : "") +
+    (seat ? `- Cheapest real seat 4 together: **$${seat[0]}** · Sec ${seat[1]} Row ${seat[2]}\n` : "") + `\n${page}`;
+  try {
+    if (!state.trendIssue) state.trendIssue = (await gh("/issues", { title: "Market trend turning up", body })).number;
+    else await gh(`/issues/${state.trendIssue}/comments`, { body });
+    state.trendUp = true;
+    writeFileSync(ALERT, JSON.stringify(state) + "\n");
+    console.log(`trend alert: ${m.state}`);
+  } catch (e) { console.error("trend alert failed:", e.message); }
+}
+
 // Pushes made with the Actions token don't fire push workflows, so start the site deploy (pages.yml) ourselves.
 function deploy() {
   try { execSync("gh workflow run pages.yml --ref main", { stdio: "inherit" }); }
@@ -162,7 +220,7 @@ async function once(write) {
   const { reading: r, latest } = await poll();
   console.log(summary(r));
   if (r.q2.count === 0 && r.q4.count === 0) throw new Error("no listings returned");
-  if (write) { append(r); writeFileSync(LATEST, JSON.stringify(latest) + "\n"); await alert(latest); publish(r); }
+  if (write) { append(r); writeFileSync(LATEST, JSON.stringify(latest) + "\n"); await alert(latest); await trendAlert(latest); publish(r); }
   return r;
 }
 
