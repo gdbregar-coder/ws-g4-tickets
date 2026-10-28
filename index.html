@@ -199,7 +199,7 @@
   <details class="fold"><summary>How this works</summary><footer>
     Brewers @ Rays · Tropicana Field · Wed Oct 28 · 8:00 PM ET. Game 4 data is kept in g4/. Prices are Gametime all-in, per ticket.
     Seated = assigned seats only: a numbered section and a real row (no Party Deck, section ranges with row TBD, or wheelchair rows).
-    Preferred = seated in Sec 100–126 rows A–Y (first 23) or any 200s/300s section rows A–C (first 3);
+    Preferred = seated in Sec 100–126 rows A–Y (first 23) or any 200s/300s section rows A–B (first 2);
     ★★★★ Brewers dugout = Sec 111–117 rows G–JJ (up to the walkway) and Sec 109 and 119 rows G–Y (corners clipped) (visitors' dugout is on the 3rd-base side in front of 111–117, per a fan seating site; check the Rays' map). Highlighted under $750, which also sends an alert;
     rows skip I and O. Readings every minute. Baseline = first reading. Trailing avg = previous 3 readings.
     ▲/▼ compare the current reading to each.
@@ -235,7 +235,7 @@ const isAssigned = ([, section, row, group]) => /^\d+$/.test(section) && rowNum(
 function isPreferred(l) {
   if (!isAssigned(l)) return false;
   const s = Number(l[1]), n = rowNum(l[2]);
-  return (s >= 100 && s <= 126 && n <= 23) || (s >= 200 && s < 400 && n <= 3);
+  return (s >= 100 && s <= 126 && n <= 23) || (s >= 200 && s < 400 && n <= 2);
 }
 // ★★★★ Brewers dugout zone (mirrors collect.mjs), 3rd-base side: 111-117 rows G-JJ, 109 and 119 rows G-Y.
 const DUGOUT = { core: [111, 113, 115, 117], edge: [109, 119], minRow: 7, maxRow: 33, edgeMaxRow: 23, alertUnder: 750 };
