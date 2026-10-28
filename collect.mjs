@@ -38,10 +38,10 @@ function isPreferred(r) {
   return (s >= 100 && s <= 126 && n <= 23) || (s >= 200 && s < 400 && n <= 2);
 }
 // ★★★★ Brewers dugout: the visitors' dugout is on the 3rd-base side in front of odd sections 111-117
-// (per a fan seating site; unconfirmed by the Rays). Zone = those plus one section either side, 109-119,
-// assigned seats only, with the corners clipped: 111-117 rows G-JJ (7th-33rd, up to the walkway),
-// 109 and 119 rows G-Y (7th-23rd). Mirrored in index.html.
-const DUGOUT = { core: [111, 113, 115, 117], edge: [109, 119], minRow: 7, maxRow: 33, edgeMaxRow: 23, alertUnder: 750 };
+// (per a fan seating site; unconfirmed by the Rays). Zone = odd sections 101-121 (home plate out past the
+// dugout), assigned seats only, with the corners clipped: 111-117 rows G-JJ (7th-33rd, up to the walkway),
+// the rest rows G-Y (7th-23rd). Mirrored in index.html.
+const DUGOUT = { core: [111, 113, 115, 117], edge: [101, 103, 105, 107, 109, 119, 121], minRow: 7, maxRow: 33, edgeMaxRow: 23, alertUnder: 750 };
 const isDugout = (r) => {
   const s = Number(r.section), n = rowNum(r.row);
   if (!isAssigned(r) || n < DUGOUT.minRow) return false;
