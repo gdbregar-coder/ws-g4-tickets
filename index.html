@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#121211">
-<title>WS Game 4 Tickets</title>
+<title>WS Game 5 Tickets</title>
 <style>
   :root {
     color-scheme: dark;
@@ -139,7 +139,7 @@
 <body>
 <main>
   <header class="top">
-    <div class="hl"><h1>WS G4 · MIL @ TB</h1><div class="sub" id="countdown"></div></div>
+    <div class="hl"><h1>WS G5 · MIL @ TB</h1><div class="sub" id="countdown"></div></div>
     <div class="fresh" id="fresh">loading…</div>
     <button class="rbtn" id="refresh-top" aria-label="Refresh now">↻</button>
   </header>
@@ -181,7 +181,7 @@
   </details>
 
   <details class="fold"><summary>How this works</summary><footer>
-    Brewers @ Rays · Tropicana Field · Tue Oct 27 · 8:00 PM ET. Prices are Gametime all-in, per ticket.
+    Brewers @ Rays · Tropicana Field · Wed Oct 28 · 8:00 PM ET. Game 4 data is kept in g4/. Prices are Gametime all-in, per ticket.
     Seated = assigned seats only: a numbered section and a real row (no Party Deck, section ranges with row TBD, or wheelchair rows).
     Preferred = seated in Sec 100–126 rows A–Y (first 23) or any 200s/300s section rows A–C (first 3);
     rows skip I and O. Readings every minute. Baseline = first reading. Trailing avg = previous 3 readings.
@@ -192,7 +192,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
-const GAME = Date.parse("2026-10-28T00:00:00Z");
+const GAME = Date.parse("2026-10-29T00:00:00Z");
 const DEFAULT_MAX = 1500;
 const $ = (id) => document.getElementById(id);
 const fmt$ = (v) => v == null ? "—" : "$" + Math.round(v).toLocaleString("en-US");
@@ -243,7 +243,7 @@ document.querySelectorAll("[data-step]").forEach((b) => b.addEventListener("clic
 $("share").addEventListener("click", async () => {
   const url = limitsUrl(), b = $("share");
   try {
-    if (navigator.share) await navigator.share({ title: "WS Game 4 ticket limits", url });
+    if (navigator.share) await navigator.share({ title: "WS Game 5 ticket limits", url });
     else { await navigator.clipboard.writeText(url); b.textContent = "✓ Link copied"; setTimeout(() => (b.textContent = "Share these limits"), 2500); }
   } catch {}
 });

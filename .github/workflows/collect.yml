@@ -34,6 +34,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if [ "$(date -u +%s)" -lt "$(date -u -d 2026-10-28T00:00:00Z +%s)" ]; then
+          if [ "$(date -u +%s)" -lt "$(date -u -d 2026-10-29T00:00:00Z +%s)" ]; then
             gh workflow run collect.yml --ref main -R "$GITHUB_REPOSITORY"
           fi
