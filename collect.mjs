@@ -1,4 +1,4 @@
-// Gametime resale price collector for WS Game 4 (Brewers @ Rays, Oct 27 2026 8:00 PM ET).
+// Gametime resale price collector for WS Game 5 (Brewers @ Rays, Oct 28 2026 8:00 PM ET). Game 4 data is in g4/.
 //
 //   node collect.mjs --dry    one poll, print summary, write nothing (smoke test)
 //   node collect.mjs          one poll, append to history.json
@@ -8,10 +8,10 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { execSync } from "node:child_process";
 
-const EVENT_ID = "6a6e328da480127e6660ba09";
+const EVENT_ID = "GAME5_EVENT_ID";
 const API = (q) => `https://mobile.gametime.co/v3/listings/${EVENT_ID}?all_in_pricing=true&quantity=${q}`;
 const UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
-const END = Date.parse("2026-10-28T00:00:00Z");       // 8:00 PM EDT
+const END = Date.parse("2026-10-29T00:00:00Z");       // 8:00 PM EDT Oct 28
 const MAX_RUN_MIN = Number(process.env.MAX_RUN_MIN || 55);
 const FILE = new URL("./history.json", import.meta.url);
 const LATEST = new URL("./latest.json", import.meta.url); // every current listing, overwritten each poll
@@ -94,7 +94,7 @@ async function poll() {
 }
 
 function load() {
-  if (!existsSync(FILE)) return { event: { id: EVENT_ID, name: "World Series Game 4 · Brewers @ Rays", start: "2026-10-28T00:00:00Z" }, readings: [] };
+  if (!existsSync(FILE)) return { event: { id: EVENT_ID, name: "World Series Game 5 · Brewers @ Rays", start: "2026-10-29T00:00:00Z" }, readings: [] };
   return JSON.parse(readFileSync(FILE, "utf8"));
 }
 
