@@ -26,6 +26,7 @@
     --max: #e34948;
     --seat: #e0a400;
     --pref: #b47ae8;
+    --trend: #00e5ff;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--text); }
@@ -70,6 +71,13 @@
   .tile.hit .tp, .tile.beat .tp { color: var(--good); }
   .pill { display: inline-block; margin-top: 4px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; background: var(--border); color: var(--text-2); }
   .pill.good { background: var(--good); color: #062a14; }
+  .trendrow { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 14px; color: var(--text-2); }
+  .trendrow .tv { font-size: 22px; font-weight: 800; color: var(--trend); }
+  .tstate { font-weight: 800; padding: 2px 9px; border-radius: 999px; font-size: 13px; }
+  .tstate.falling { background: #12343a; color: var(--trend); }
+  .tstate.flat { background: var(--border); color: var(--text-2); }
+  .tstate.watch { background: #4a3a00; color: var(--warn); }
+  .tstate.rising { background: var(--bad); color: #fff; }
   .swhere { font-size: 14px; color: var(--muted); }
   .smeta { font-size: 14px; color: var(--text-2); margin-top: 2px; }
   .smeta b { color: var(--text); }
@@ -159,6 +167,7 @@
   </details>
 
   <div class="strip">
+    <div class="srow small" id="s-trend"></div>
     <div class="srow" id="s-pref"></div>
     <div class="srow" id="s-cheap"></div>
   </div>
@@ -176,6 +185,7 @@
 
   <details class="fold" id="charts">
     <summary>Charts</summary>
+    <section><h2>Market trend · 4 together, 25th pct · $/ticket</h2><div class="chartbox"><canvas id="c-trend"></canvas></div></section>
     <section><h2>4 together · $/ticket</h2><div class="chartbox"><canvas id="c-q4"></canvas></div></section>
     <section><h2>Listing count</h2><div class="chartbox"><canvas id="c-n"></canvas></div></section>
   </details>
@@ -185,7 +195,9 @@
     Seated = assigned seats only: a numbered section and a real row (no Party Deck, section ranges with row TBD, or wheelchair rows).
     Preferred = seated in Sec 100–126 rows A–Y (first 23) or any 200s/300s section rows A–C (first 3);
     rows skip I and O. Readings every minute. Baseline = first reading. Trailing avg = previous 3 readings.
-    ▲/▼ compare the current reading to each. Read-only tracker — never buys anything.
+    ▲/▼ compare the current reading to each.
+    Market trend = the 4-together 25th-percentile price, spike-filtered and smoothed (Holt linear trend, looks only backward).
+    "Turning up" = rising faster than 2%/hr for 10 min; "Rising" = faster than 2.5%/hr for 15 min. On Game 4 those would have fired at 5:33 PM and 6:48 PM. Read-only tracker — never buys anything.
     <span id="src"></span>
   </footer></details>
 </main>
@@ -197,7 +209,7 @@ const DEFAULT_MAX = 1500;
 const $ = (id) => document.getElementById(id);
 const fmt$ = (v) => v == null ? "—" : "$" + Math.round(v).toLocaleString("en-US");
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-const C = { q4: css("--q4"), q2: css("--q2"), max: css("--max"), seat: css("--seat"), pref: css("--pref"), text2: css("--text-2"), muted: css("--muted"), grid: "#2a2a28" };
+const C = { trend: css("--trend"), q4: css("--q4"), q2: css("--q2"), max: css("--max"), seat: css("--seat"), pref: css("--pref"), text2: css("--text-2"), muted: css("--muted"), grid: "#2a2a28" };
 const LABEL = { q4: "4 together", q2: "Pairs" };
 
 // Seat classes (mirrors collect.mjs). Rows are letters skipping I and O (A..Z then AA..ZZ) or numbers.
@@ -338,6 +350,7 @@ function stripRow(id, label, color, q, sub, cur, max, note = "") {
 }
 // Current values come from latest.json (every listing); ▲/▼ trends from history.json.
 function renderStrips() {
+  renderTrend();
   if (!L) { $("s-pref").innerHTML = `<div class="sub">Seat breakdown loads with the latest listings…</div>`; return; }
   stripRow("s-pref", "★ Preferred · 4 together", C.pref, "q4", "pref", lowOf(L.q4.filter(isPreferred)), MAXES.pref,
     );
@@ -450,6 +463,49 @@ const line = (label, data, color, extra = {}) => ({ label, data, borderColor: co
 const hline = (label, y, xs, color, extra) => line(label, xs.length ? [{ x: xs[0], y }, { x: xs.at(-1), y }] : [], color, extra);
 const alpha = (hex, a) => hex + Math.round(a * 255).toString(16).padStart(2, "0");
 
+// Market trend: the 4-together 25th-percentile price (a realistic deal level, steadier than the single
+// cheapest listing), passed through a 5-reading rolling median to drop one-minute spikes, then a
+// time-aware Holt linear trend (exponentially smoothed level + slope). It only looks backward, so the
+// line never redraws history. Tuned on Game 4: it bottomed ~4:30-5 PM and turned up ~6:30 PM.
+const TREND = { alpha: 0.08, beta: 0.03, win: 5, fallPct: -1, watch: [2, 10], rise: [2.5, 15] }; // %/hr, minutes
+function marketTrend(R) {
+  const pts = [], buf = [];
+  let lvl = null, slope = 0, prev = null;
+  for (const r of R) {
+    const t = Date.parse(r.t), raw = r.q4?.p25;
+    if (raw == null) continue;
+    buf.push(raw); if (buf.length > TREND.win) buf.shift();
+    const y = [...buf].sort((a, b) => a - b)[Math.floor(buf.length / 2)];
+    if (lvl == null) { lvl = y; prev = t; pts.push({ t, lvl, slope }); continue; }
+    const dt = Math.max(1, (t - prev) / 60000); prev = t; // minutes since last reading
+    const a = 1 - (1 - TREND.alpha) ** dt, b = 1 - (1 - TREND.beta) ** dt;
+    const next = a * y + (1 - a) * (lvl + slope * dt);
+    slope = b * (next - lvl) / dt + (1 - b) * slope; lvl = next;
+    pts.push({ t, lvl, slope });
+  }
+  // State: how long the slope has held above each "up" threshold, as of the latest reading.
+  const pct = (p) => (p.slope * 60) / p.lvl * 100, held = (min) => {
+    let since = null;
+    for (const p of pts) since = pct(p) >= min ? since ?? p.t : null;
+    return since == null ? 0 : (pts.at(-1).t - since) / 60000;
+  };
+  const last = pts.at(-1), now = last ? pct(last) : 0;
+  const state = !last || pts.length < TREND.win ? "flat"
+    : held(TREND.rise[0]) >= TREND.rise[1] ? "rising"
+    : held(TREND.watch[0]) >= TREND.watch[1] ? "watch"
+    : now <= TREND.fallPct ? "falling" : "flat";
+  return { pts, last, perHr: last ? last.slope * 60 : 0, pctHr: now, state };
+}
+function renderTrend() {
+  const el = $("s-trend"), m = marketTrend(H.readings);
+  if (!m.last) { el.innerHTML = ""; return; }
+  const label = { falling: "Falling · keep waiting", flat: "Flat", watch: "Turning up · get ready", rising: "Rising · buy window" }[m.state];
+  const d = Math.round(m.perHr);
+  el.innerHTML = `<div class="trendrow"><span class="sname" style="min-width:0">Market trend</span>
+    <span class="tv">${fmt$(m.last.lvl)}</span><span>${d >= 0 ? "▲" : "▼"}${fmt$(Math.abs(d))}/hr (${m.pctHr >= 0 ? "+" : ""}${m.pctHr.toFixed(1)}%)</span>
+    <span class="tstate ${m.state}">${label}</span></div>`;
+}
+
 function priceDatasets(q) {
   const R = H.readings, xs = R.map((r) => Date.parse(r.t));
   const s = (k) => R.map((r, i) => ({ x: xs[i], y: val(r, q, k) }));
@@ -465,6 +521,8 @@ function priceDatasets(q) {
     line("Trail avg (low)", trail, C.text2, { borderWidth: 1 }),
     ...(q === "q4" ? [hline(`Preferred max ${fmt$(MAXES.pref)}`, MAXES.pref, xs, C.pref, { borderDash: [3, 3], borderWidth: 2 })] : []),
     hline(`Seated max ${fmt$(MAXES.seat)}`, MAXES.seat, xs, C.max, { borderWidth: 2 }),
+    // Drawn last so it sits on top of everything else.
+    ...(q === "q4" ? [line("Market trend", marketTrend(R).pts.map((p) => ({ x: p.t, y: Math.round(p.lvl) })), C.trend, { borderWidth: 4 })] : []),
   ];
 }
 function countDatasets() {
@@ -476,13 +534,14 @@ function countDatasets() {
   }
   return out;
 }
-function drawChart(id, datasets, money) {
+function drawChart(id, datasets, money, yMax) {
   if (!window.Chart) return;
   // Pin the time axis to the data (at least a 1-hour window) so a single reading isn't lost in auto-range.
   const xs = H.readings.map((r) => Date.parse(r.t)), x0 = xs[0], x1 = Math.max(xs.at(-1), x0 + 3600000);
   if (!charts[id]) charts[id] = new Chart($(id), { type: "line", data: { datasets: [] }, options: baseOpts(money) });
   const c = charts[id];
   c.options.scales.x.min = x0; c.options.scales.x.max = x1;
+  c.options.scales.y.max = yMax; // undefined = auto
   c.data.datasets = datasets; c.update("none");
 }
 
@@ -492,7 +551,15 @@ function render() {
   renderStrips();
   renderSections();
   if (!$("charts").open) return; // charts are drawn only while their section is open
-  drawChart("c-q4", priceDatasets("q4"), true);
+  const m = marketTrend(H.readings), xsT = m.pts.map((p) => p.t);
+  drawChart("c-trend", [
+    line("25th pct (raw)", H.readings.filter((r) => r.q4?.p25 != null).map((r) => ({ x: Date.parse(r.t), y: r.q4.p25 })), alpha(C.q4, 0.55), { borderWidth: 1.5 }),
+    line("Market trend", m.pts.map((p) => ({ x: p.t, y: Math.round(p.lvl) })), C.trend, { borderWidth: 4 }),
+  ], true);
+  // Cap the price chart so one far-off listing doesn't flatten everything: top = 15% above the highest of
+  // the limits and the 25th-percentile line; anything above runs off the top.
+  const capTop = Math.max(MAXES.pref, MAXES.seat, ...H.readings.map((r) => r.q4?.p25 ?? 0)) * 1.15;
+  drawChart("c-q4", priceDatasets("q4"), true, Math.ceil(capTop / 250) * 250);
   drawChart("c-n", countDatasets(), false);
 }
 
