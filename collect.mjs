@@ -39,9 +39,14 @@ function isPreferred(r) {
 }
 // ★★★★ Brewers dugout: the visitors' dugout is on the 3rd-base side in front of odd sections 111-117
 // (per a fan seating site; unconfirmed by the Rays). Zone = those plus one section either side, 109-119,
-// rows G-Y (7th-23rd), assigned seats only. Mirrored in index.html.
-const DUGOUT = { sections: [109, 111, 113, 115, 117, 119], minRow: 7, maxRow: 23, alertUnder: 750 }; // rows G-Y
-const isDugout = (r) => isAssigned(r) && DUGOUT.sections.includes(Number(r.section)) && rowNum(r.row) >= DUGOUT.minRow && rowNum(r.row) <= DUGOUT.maxRow;
+// assigned seats only, with the corners clipped: 111-117 rows G-JJ (7th-33rd, up to the walkway),
+// 109 and 119 rows G-Y (7th-23rd). Mirrored in index.html.
+const DUGOUT = { core: [111, 113, 115, 117], edge: [109, 119], minRow: 7, maxRow: 33, edgeMaxRow: 23, alertUnder: 750 };
+const isDugout = (r) => {
+  const s = Number(r.section), n = rowNum(r.row);
+  if (!isAssigned(r) || n < DUGOUT.minRow) return false;
+  return DUGOUT.core.includes(s) ? n <= DUGOUT.maxRow : DUGOUT.edge.includes(s) && n <= DUGOUT.edgeMaxRow;
+};
 // Cheapest of a (price-sorted) subset.
 const low = (rs) => ({ min: rs[0]?.price ?? null, section: rs[0]?.section ?? "", row: rs[0]?.row ?? "", count: rs.length });
 
@@ -80,7 +85,8 @@ async function fetchQty(q) {
       }
       const summary = { count: rows.length, min: prices[0] ?? null, p25: pct(prices, 0.25), median: pct(prices, 0.5), top: rows.slice(0, TOP_N), levels,
         seated: low(rows.filter(isAssigned)), sro: low(rows.filter(isSro)), pref: low(rows.filter(isPreferred)), dug: low(rows.filter(isDugout)),
-        prefList: rows.filter(isPreferred).map((r) => [r.price, r.section, r.row]) }; // per-listing, for drop detection
+        prefList: rows.filter(isPreferred).map((r) => [r.price, r.section, r.row]), // per-listing, for drop detection
+        dugList: rows.filter(isDugout).map((r) => [r.price, r.section, r.row]) };
       return { summary, rows };
     } catch (e) {
       lastErr = e;
