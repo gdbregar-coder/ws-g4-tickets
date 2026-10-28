@@ -197,7 +197,8 @@
     rows skip I and O. Readings every minute. Baseline = first reading. Trailing avg = previous 3 readings.
     ▲/▼ compare the current reading to each.
     Market trend = the 4-together 25th-percentile price, spike-filtered and smoothed (Holt linear trend, looks only backward).
-    "Turning up" = rising faster than 2%/hr for 10 min (early heads-up). "Rising · buy window" = faster than 3%/hr for 15 min and at least 3% above the day's low; this sends the phone alert. On Game 4 those would have fired at 5:33 PM (a false start) and 6:48 PM. Read-only tracker — never buys anything.
+    "Turning up" = rising faster than 2%/hr for 10 min (early heads-up). "Rising · buy window" = faster than 3%/hr for 15 min and at least 3% above the day's low; this sends the phone alert. On Game 4 those would have fired at 5:33 PM (a false start) and 6:48 PM.
+    CUSUM = a second, independent check: each minute's change in that price is scaled by today's own typical noise, and big upward moves are added up; it fires at a score of 5 (Game 4: 6:31 PM). An alert goes out when either check fires, with a follow-up when the other agrees. Read-only tracker — never buys anything.
     <span id="src"></span>
   </footer></details>
 </main>
@@ -497,14 +498,42 @@ function marketTrend(R) {
     : now <= TREND.fallPct ? "falling" : "flat";
   return { pts, last, perHr: last ? last.slope * 60 : 0, pctHr: now, state };
 }
+// CUSUM change detector (independent check on the upturn). Input: per-minute log change of the
+// 4-together 25th pct. Each change is divided by today's own noise (sigma = 1.4826 x MAD of the last
+// 120 changes, floored at 0.2%/min), clipped to +/-3 so one spike can't trip it, and accumulated:
+// S = max(0, S + z - k). It fires when S >= h. k = 1 (looks for a shift of ~2x normal noise), h = 5.
+// Backtest: Game 4 fires once at 6:31 PM; Game 5 none so far. h = 6 misses Game 4; h = 4 also flags
+// the 5:43 PM blip, so it's a second opinion next to the Holt rule, not a replacement.
+const CUSUM = { k: 1, h: 5, win: 120, minN: 30, clip: 3, floor: 0.002 };
+function cusumUp(R) {
+  const med = (a) => { const s = [...a].sort((x, y) => x - y), n = s.length; return n ? (n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2) : 0; };
+  const xs = R.filter((r) => r.q4?.p25 != null).map((r) => ({ t: Date.parse(r.t), x: r.q4.p25 }));
+  const rets = [];
+  let S = 0, sig = null, firedAt = null;
+  for (let i = 1; i < xs.length; i++) {
+    const dt = Math.max(1, (xs[i].t - xs[i - 1].t) / 60000), r = Math.log(xs[i].x / xs[i - 1].x) / Math.sqrt(dt);
+    const hist = rets.slice(-CUSUM.win);
+    rets.push(r);
+    if (hist.length < CUSUM.minN) continue;
+    const m = med(hist);
+    sig = Math.max(1.4826 * med(hist.map((v) => Math.abs(v - m))), CUSUM.floor);
+    S = Math.max(0, S + Math.max(-CUSUM.clip, Math.min(CUSUM.clip, r / sig)) - CUSUM.k);
+    if (S >= CUSUM.h) firedAt = xs[i].t;
+  }
+  // The score drains back under h within minutes, so also report when it last fired.
+  const last = xs.at(-1)?.t ?? 0, recent = (min) => firedAt != null && last - firedAt <= min * 60000;
+  return { S, h: CUSUM.h, sig, firedAt, fired: recent(10), shown: recent(60) };
+}
+
 function renderTrend() {
-  const el = $("s-trend"), m = marketTrend(H.readings);
+  const el = $("s-trend"), m = marketTrend(H.readings), c = cusumUp(H.readings);
   if (!m.last) { el.innerHTML = ""; return; }
   const label = { falling: "Falling · keep waiting", flat: "Flat", watch: "Turning up · get ready", rising: "Rising · buy window" }[m.state];
   const d = Math.round(m.perHr);
   el.innerHTML = `<div class="trendrow"><span class="sname" style="min-width:0">Market trend</span>
     <span class="tv">${fmt$(m.last.lvl)}</span><span>${d >= 0 ? "▲" : "▼"}${fmt$(Math.abs(d))}/hr (${m.pctHr >= 0 ? "+" : ""}${m.pctHr.toFixed(1)}%)</span>
-    <span class="tstate ${m.state}">${label}</span></div>`;
+    <span class="tstate ${m.state}">${label}</span>
+    <span class="tstate ${c.shown ? "rising" : "flat"}" title="Change detector scaled to today's noise">CUSUM ${c.shown ? `✓ upturn ${new Date(c.firedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" })}` : `${c.S.toFixed(1)} / ${c.h}`}</span></div>`;
 }
 
 function priceDatasets(q) {
