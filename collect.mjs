@@ -37,6 +37,11 @@ function isPreferred(r) {
   const s = Number(r.section), n = rowNum(r.row);
   return (s >= 100 && s <= 126 && n <= 23) || (s >= 200 && s < 400 && n <= 3);
 }
+// ★★★★ Brewers dugout: the visitors' dugout is on the 3rd-base side in front of odd sections 111-117
+// (per a fan seating site; unconfirmed by the Rays). Zone = those plus one section either side, 109-119,
+// rows A-Y (first 23), assigned seats only. Mirrored in index.html.
+const DUGOUT = { sections: [109, 111, 113, 115, 117, 119], maxRow: 23, alertUnder: 1200 };
+const isDugout = (r) => isAssigned(r) && DUGOUT.sections.includes(Number(r.section)) && rowNum(r.row) <= DUGOUT.maxRow;
 // Cheapest of a (price-sorted) subset.
 const low = (rs) => ({ min: rs[0]?.price ?? null, section: rs[0]?.section ?? "", row: rs[0]?.row ?? "", count: rs.length });
 
@@ -74,7 +79,7 @@ async function fetchQty(q) {
         levels[k].count++;
       }
       const summary = { count: rows.length, min: prices[0] ?? null, p25: pct(prices, 0.25), median: pct(prices, 0.5), top: rows.slice(0, TOP_N), levels,
-        seated: low(rows.filter(isAssigned)), sro: low(rows.filter(isSro)), pref: low(rows.filter(isPreferred)),
+        seated: low(rows.filter(isAssigned)), sro: low(rows.filter(isSro)), pref: low(rows.filter(isPreferred)), dug: low(rows.filter(isDugout)),
         prefList: rows.filter(isPreferred).map((r) => [r.price, r.section, r.row]) }; // per-listing, for drop detection
       return { summary, rows };
     } catch (e) {
@@ -116,6 +121,27 @@ async function gh(path, body) {
   if (!res.ok) throw new Error(`GitHub ${path}: HTTP ${res.status}`);
   return res.json();
 }
+// ★★★★ dugout alert: each new 4-together listing in the dugout zone under DUGOUT.alertUnder, once each.
+async function dugoutAlert(latest) {
+  if (!process.env.GH_TOKEN || !process.env.GITHUB_REPOSITORY) return;
+  const state = existsSync(ALERT) ? JSON.parse(readFileSync(ALERT, "utf8")) : { issue: null, seen: [] };
+  const key = ([price, section, row]) => `${price}|${section}|${row}`, seen = state.dugSeen || [];
+  const fresh = latest.q4.filter(([price, section, row, group]) => price < DUGOUT.alertUnder && isDugout({ section, row, group }) && !seen.includes(key([price, section, row])));
+  if (!fresh.length) return;
+  const owner = process.env.GITHUB_REPOSITORY_OWNER;
+  const page = `https://${owner}.github.io/${process.env.GITHUB_REPOSITORY.split("/")[1]}/`;
+  const at = new Date(latest.t).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
+  const lines = fresh.map(([price, section, row]) => `- **$${price}/ticket** · Sec ${section} Row ${row} · 4 together`).join("\n");
+  const body = `@${owner} ★★★★ Brewers dugout 4-pack under $${DUGOUT.alertUnder} (Gametime, ${at} ET):\n\n${lines}\n\n${page}`;
+  try {
+    if (!state.dugIssue) state.dugIssue = (await gh("/issues", { title: `★★★★ Brewers dugout 4-pack under $${DUGOUT.alertUnder}`, body })).number;
+    else await gh(`/issues/${state.dugIssue}/comments`, { body });
+    state.dugSeen = [...seen, ...fresh.map(key)];
+    writeFileSync(ALERT, JSON.stringify(state) + "\n");
+    console.log(`dugout alert: ${fresh.length} listing(s)`);
+  } catch (e) { console.error("dugout alert failed:", e.message); }
+}
+
 async function alert(latest) {
   if (!process.env.GH_TOKEN || !process.env.GITHUB_REPOSITORY) return;
   const state = existsSync(ALERT) ? JSON.parse(readFileSync(ALERT, "utf8")) : { issue: null, seen: [] };
@@ -254,7 +280,7 @@ async function once(write) {
   const { reading: r, latest } = await poll();
   console.log(summary(r));
   if (r.q2.count === 0 && r.q4.count === 0) throw new Error("no listings returned");
-  if (write) { append(r); writeFileSync(LATEST, JSON.stringify(latest) + "\n"); await alert(latest); await trendAlert(latest); publish(r); }
+  if (write) { append(r); writeFileSync(LATEST, JSON.stringify(latest) + "\n"); await alert(latest); await dugoutAlert(latest); await trendAlert(latest); publish(r); }
   return r;
 }
 
