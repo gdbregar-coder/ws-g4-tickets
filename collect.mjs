@@ -8,7 +8,7 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { execSync } from "node:child_process";
 
-const EVENT_ID = "GAME5_EVENT_ID";
+const EVENT_ID = "6a6e328d86d8e5517d9dd4aa";
 const API = (q) => `https://mobile.gametime.co/v3/listings/${EVENT_ID}?all_in_pricing=true&quantity=${q}`;
 const UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
 const END = Date.parse("2026-10-29T00:00:00Z");       // 8:00 PM EDT Oct 28
