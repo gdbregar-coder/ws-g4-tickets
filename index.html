@@ -168,6 +168,7 @@
 
   <div class="strip">
     <div class="srow small" id="s-trend"></div>
+    <div class="srow" id="s-dug"></div>
     <div class="srow" id="s-pref"></div>
     <div class="srow" id="s-cheap"></div>
   </div>
@@ -194,6 +195,7 @@
     Brewers @ Rays · Tropicana Field · Wed Oct 28 · 8:00 PM ET. Game 4 data is kept in g4/. Prices are Gametime all-in, per ticket.
     Seated = assigned seats only: a numbered section and a real row (no Party Deck, section ranges with row TBD, or wheelchair rows).
     Preferred = seated in Sec 100–126 rows A–Y (first 23) or any 200s/300s section rows A–C (first 3);
+    ★★★★ Brewers dugout = Sec 109, 111, 113, 115, 117, 119 rows A–Y (visitors' dugout is on the 3rd-base side in front of 111–117, per a fan seating site; check the Rays' map). Highlighted under $1,200, which also sends an alert;
     rows skip I and O. Readings every minute. Baseline = first reading. Trailing avg = previous 3 readings.
     ▲/▼ compare the current reading to each.
     Market trend = the 4-together 25th-percentile price, spike-filtered and smoothed (Holt linear trend, looks only backward).
@@ -230,6 +232,9 @@ function isPreferred(l) {
   const s = Number(l[1]), n = rowNum(l[2]);
   return (s >= 100 && s <= 126 && n <= 23) || (s >= 200 && s < 400 && n <= 3);
 }
+// ★★★★ Brewers dugout zone (mirrors collect.mjs): odd sections 109-119 on the 3rd-base side, rows A-Y.
+const DUGOUT = { sections: [109, 111, 113, 115, 117, 119], maxRow: 23, alertUnder: 1200 };
+const isDugout = (l) => isAssigned(l) && DUGOUT.sections.includes(Number(l[1])) && rowNum(l[2]) <= DUGOUT.maxRow;
 // latest.json rows are price-sorted, so the first match is the cheapest.
 const lowOf = (rs) => ({ min: rs[0]?.[0] ?? null, section: rs[0]?.[1] ?? "", row: rs[0]?.[2] ?? "", count: rs.length });
 
@@ -353,6 +358,7 @@ function stripRow(id, label, color, q, sub, cur, max, note = "") {
 function renderStrips() {
   renderTrend();
   if (!L) { $("s-pref").innerHTML = `<div class="sub">Seat breakdown loads with the latest listings…</div>`; return; }
+  stripRow("s-dug", "★★★★ Brewers dugout · 4 together", C.pref, "q4", "dug", lowOf(L.q4.filter(isDugout)), DUGOUT.alertUnder);
   stripRow("s-pref", "★ Preferred · 4 together", C.pref, "q4", "pref", lowOf(L.q4.filter(isPreferred)), MAXES.pref,
     );
   // Cheapest per ticket: standing room (the price to beat) and the cheapest real seat for 1, 2 and 4
@@ -401,7 +407,7 @@ function renderPref() {
   };
   el.innerHTML = `<tr><th>Price</th><th>Section</th><th>Row</th></tr>` +
     shown.map(([price, section, row, group]) => { const t = tag(price, section, row); return `<tr class="${t.cls}"><td${price <= MAXES.pref ? ` class="hit"` : ""}><span class="p">${fmt$(price)}</span>${t.html}</td>` +
-      `<td class="lvname">${section}<span class="sr">${group || ""}</span></td><td>${row}</td></tr>`; }).join("") +
+      `<td class="lvname">${section}<span class="sr">${isDugout([price, section, row, group]) ? "★★★★ dugout" : group || ""}</span></td><td>${row}</td></tr>`; }).join("") +
     `<tr><td colspan="3" class="sub">${rows.length} preferred listing${rows.length > 1 ? "s" : ""}${moreBtn("pref", rows.length)}${past.length ? ` · ▼▲ new vs. the ${span}` : ""}</td></tr>`;
 }
 
