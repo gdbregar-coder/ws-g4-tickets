@@ -205,6 +205,7 @@
     ▲/▼ compare the current reading to each.
     Market trend = the 4-together 25th-percentile price, spike-filtered and smoothed (Holt linear trend, looks only backward).
     Falling = the last 30 minutes slope down faster than 3%/hr (a Theil–Sen line through the 25th pct); otherwise Flat.
+    False floor = a flat stretch of 10+ minutes followed by a 2%+ drop below its low; "Flat" is a pause, not a buy signal.
     "Turning up" = the last 30 minutes rising faster than 3%/hr, or the trend line rising faster than 2%/hr for 10 min (early heads-up). "Rising · buy window" = faster than 3%/hr for 15 min and at least 3% above the day's low; this sends the phone alert. On Game 4 those would have fired at 5:33 PM (a false start) and 6:48 PM.
     CUSUM = a second, independent check: each minute's change in that price is scaled by today's own typical noise, and big upward moves are added up; it fires at a score of 5 (Game 4: 6:31 PM). An alert goes out when either check fires, with a follow-up when the other agrees. Read-only tracker — never buys anything.
     <span id="src"></span>
@@ -559,15 +560,38 @@ function cusumUp(R) {
   return { S, h: CUSUM.h, sig, firedAt, fired: recent(10), shown: recent(60) };
 }
 
+// False floors today: a flat stretch (30-min slope above the falling cutoff) that held 10+ minutes, after
+// which the 25th pct fell 2%+ below that stretch's low. Also returns the current flat stretch, if any.
+function falseFloors(R) {
+  const floors = [];
+  let run = null;
+  for (let i = 10; i <= R.length; i++) {
+    const t = Date.parse(R[i - 1].t), p = R[i - 1].q4?.p25;
+    if (p == null) continue;
+    for (const f of floors) if (!f.broke && p < f.low * 0.98) f.broke = t;
+    const v = recentSlope(R.slice(0, i));
+    if (v == null || v <= TREND.fallPct) { run = null; continue; }
+    if (!run) run = { start: t, low: p };
+    run.low = Math.min(run.low, p);
+    if (!run.counted && t - run.start >= 10 * 60000) { run.counted = true; floors.push(run); }
+  }
+  // "Holding since": the earliest 10+ minute flat stretch whose low hasn't broken, so a brief dip that
+  // doesn't make a new low doesn't reset the clock.
+  return { count: floors.filter((f) => f.broke).length, current: floors.find((f) => !f.broke) ?? run };
+}
+
 function renderTrend() {
   const el = $("s-trend"), m = marketTrend(H.readings), c = cusumUp(H.readings);
   if (!m.last) { el.innerHTML = ""; return; }
-  const label = { falling: "Falling · keep waiting", flat: m.nearLow ? "Flat · leveling off near today's low" : "Flat",
+  const ff = m.state === "flat" ? falseFloors(H.readings) : null, et = (t) => new Date(t).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
+  const flatLabel = (ff?.current ? `Flat since ${et(ff.current.start)}` : "Flat") +
+    (ff?.count ? ` · paused (${ff.count} false floor${ff.count > 1 ? "s" : ""} today)` : m.nearLow ? " · leveling off near today's low" : "");
+  const label = { falling: "Falling · keep waiting", flat: flatLabel,
     watch: "Turning up · get ready", rising: "Rising · buy window" }[m.state];
   const v = m.recent ?? m.pctHr, d = Math.round((v / 100) * m.last.lvl); // last-30-min rate, in $/hr and %/hr
   el.innerHTML = `<div class="trendrow"><span class="sname" style="min-width:0">Market trend</span>
     <span class="tv">${fmt$(m.last.lvl)}</span><span title="Last 30 minutes">${d >= 0 ? "▲" : "▼"}${fmt$(Math.abs(d))}/hr (${v >= 0 ? "+" : ""}${v.toFixed(1)}%) · 30 min</span>
-    <span class="tstate ${m.state}">${label}</span>
+    <span class="tstate ${m.state}"${ff?.count ? ` title="A flat stretch of 10+ minutes that was followed by a 2%+ drop below its low. Flat is a pause, not a buy signal; the upturn alert is."` : ""}>${label}</span>
     <span class="tstate ${c.shown ? "rising" : "flat"}" title="Change detector scaled to today's noise">CUSUM ${c.shown ? `✓ upturn ${new Date(c.firedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" })}` : `${c.S.toFixed(1)} / ${c.h}`}</span></div>`;
 }
 
