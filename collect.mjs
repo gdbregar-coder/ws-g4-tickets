@@ -168,30 +168,63 @@ function marketTrend(R) {
   return { last, perHr: last ? last.slope * 60 : 0, pctHr: now, offLow: last ? (last.lvl / low - 1) * 100 : 0, state };
 }
 
-// Alert once when the trend turns up meaningfully ("rising"). Re-arms only after the trend is falling
-// again, so wobble around the turn doesn't send repeat pings. Separate issue from the listing alerts.
+// CUSUM change detector (independent check on the upturn). Input: per-minute log change of the
+// 4-together 25th pct. Each change is divided by today's own noise (sigma = 1.4826 x MAD of the last
+// 120 changes, floored at 0.2%/min), clipped to +/-3 so one spike can't trip it, and accumulated:
+// S = max(0, S + z - k). It fires when S >= h. k = 1 (looks for a shift of ~2x normal noise), h = 5.
+// Backtest: Game 4 fires once at 6:31 PM; Game 5 none so far. h = 6 misses Game 4; h = 4 also flags
+// the 5:43 PM blip, so it's a second opinion next to the Holt rule, not a replacement.
+const CUSUM = { k: 1, h: 5, win: 120, minN: 30, clip: 3, floor: 0.002 };
+function cusumUp(R) {
+  const med = (a) => { const s = [...a].sort((x, y) => x - y), n = s.length; return n ? (n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2) : 0; };
+  const xs = R.filter((r) => r.q4?.p25 != null).map((r) => ({ t: Date.parse(r.t), x: r.q4.p25 }));
+  const rets = [];
+  let S = 0, sig = null, firedAt = null;
+  for (let i = 1; i < xs.length; i++) {
+    const dt = Math.max(1, (xs[i].t - xs[i - 1].t) / 60000), r = Math.log(xs[i].x / xs[i - 1].x) / Math.sqrt(dt);
+    const hist = rets.slice(-CUSUM.win);
+    rets.push(r);
+    if (hist.length < CUSUM.minN) continue;
+    const m = med(hist);
+    sig = Math.max(1.4826 * med(hist.map((v) => Math.abs(v - m))), CUSUM.floor);
+    S = Math.max(0, S + Math.max(-CUSUM.clip, Math.min(CUSUM.clip, r / sig)) - CUSUM.k);
+    if (S >= CUSUM.h) firedAt = xs[i].t;
+  }
+  // The score drains back under h within minutes, so also report when it last fired.
+  const last = xs.at(-1)?.t ?? 0, recent = (min) => firedAt != null && last - firedAt <= min * 60000;
+  return { S, h: CUSUM.h, sig, firedAt, fired: recent(10), shown: recent(60) };
+}
+
+// Alert when either detector says the market turned up (Holt "rising" or CUSUM), naming which one, then
+// one follow-up when the other agrees. Re-arms only after the Holt trend is falling again, so wobble
+// around the turn doesn't send repeat pings. Separate issue from the listing alerts.
 async function trendAlert(latest) {
   if (!process.env.GH_TOKEN || !process.env.GITHUB_REPOSITORY) return;
   const state = existsSync(ALERT) ? JSON.parse(readFileSync(ALERT, "utf8")) : { issue: null, seen: [] };
-  const m = marketTrend(load().readings);
-  const up = m.state === "rising";
-  if (m.state === "falling" && state.trendUp) { state.trendUp = false; writeFileSync(ALERT, JSON.stringify(state) + "\n"); }
-  if (!up || state.trendUp) return;
+  const R = load().readings, m = marketTrend(R), c = cusumUp(R);
+  if (m.state === "falling" && state.trendUp) { state.trendUp = false; state.trendSignals = []; writeFileSync(ALERT, JSON.stringify(state) + "\n"); }
+  const now = [...(m.state === "rising" ? ["holt"] : []), ...(c.fired ? ["cusum"] : [])];
+  const fresh = now.filter((k) => !(state.trendSignals || []).includes(k));
+  if (!fresh.length) return;
   const owner = process.env.GITHUB_REPOSITORY_OWNER, $ = (v) => "$" + Math.round(v).toLocaleString("en-US");
   const page = `https://${owner}.github.io/${process.env.GITHUB_REPOSITORY.split("/")[1]}/`;
   const at = new Date(latest.t).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
   const seat = latest.q4.find(([, section, row, group]) => isAssigned({ section, row, group }));
   const pref = latest.q4.find(([, section, row, group]) => isPreferred({ section, row, group }));
-  const body = `@${owner} market trend is **turning up meaningfully** (${at} ET): ` +
-    `${$(m.last.lvl)} for 4 together (25th pct), ▲${$(m.perHr)}/hr (+${m.pctHr.toFixed(1)}%/hr), ${m.offLow.toFixed(1)}% above today's low.\n\n` +
+  const why = { holt: `trend line rising ${m.pctHr.toFixed(1)}%/hr, ${m.offLow.toFixed(1)}% above today's low`,
+    cusum: `CUSUM: an unusually large upward move for today's noise (score ${c.S.toFixed(1)} ≥ ${c.h})` };
+  const head = state.trendUp
+    ? `@${owner} upturn **confirmed by both checks** (${at} ET): ${fresh.map((k) => why[k]).join("; ")}.`
+    : `@${owner} market is **turning up meaningfully** (${at} ET): ${now.map((k) => why[k]).join("; ")}.`;
+  const body = `${head}\n\n4 together, 25th pct trend: ${$(m.last.lvl)} (▲${$(m.perHr)}/hr).\n` +
     (pref ? `- Cheapest preferred 4 together: **$${pref[0]}** · Sec ${pref[1]} Row ${pref[2]}\n` : "") +
     (seat ? `- Cheapest real seat 4 together: **$${seat[0]}** · Sec ${seat[1]} Row ${seat[2]}\n` : "") + `\n${page}`;
   try {
     if (!state.trendIssue) state.trendIssue = (await gh("/issues", { title: "Market trend turning up", body })).number;
     else await gh(`/issues/${state.trendIssue}/comments`, { body });
-    state.trendUp = true;
+    state.trendUp = true; state.trendSignals = [...new Set([...(state.trendSignals || []), ...now])];
     writeFileSync(ALERT, JSON.stringify(state) + "\n");
-    console.log(`trend alert: ${m.state}`);
+    console.log(`trend alert: ${now.join("+")}`);
   } catch (e) { console.error("trend alert failed:", e.message); }
 }
 
