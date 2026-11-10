@@ -1,0 +1,14 @@
+{
+  "name": "Spring break · Milwaukee area → Puerto Vallarta",
+  "origins": ["ORD", "MDW", "MKE"],
+  "destination": "PVR",
+  "depart": "2027-03-20",
+  "return": "2027-03-28",
+  "flexDays": 2,
+  "party": { "adults": 2, "children": 1, "size": 3 },
+  "maxPrice": 500,
+  "oneStopMustBeatBy": 100,
+  "trailingReadings": 7,
+  "alerts": { "dropBelowAvgPct": 10, "jumpPct": 15 },
+  "concurrency": 4
+}

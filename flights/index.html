@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#121211">
+<title>PVR Spring Break Fares</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #121211;
+    --surface: #1a1a19;
+    --surface-2: #242422;
+    --border: #33322f;
+    --text: #f0efec;
+    --text-2: #c3c2b7;
+    --muted: #8d8c84;
+    --ord: #3987e5;
+    --mdw: #d95926;
+    --mke: #199e70;
+    --good: #2fbf6a;
+    --good-bg: #0f3a22;
+    --bad: #e66767;
+    --warn: #e0a400;
+    --max: #e34948;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body {
+    font: 17px/1.35 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    -webkit-text-size-adjust: 100%;
+    font-variant-numeric: tabular-nums;
+  }
+  main { max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 18px; margin: 0; font-weight: 700; }
+  h2 { font-size: 16px; margin: 0 0 8px; color: var(--text-2); font-weight: 700; }
+  section { margin-top: 18px; }
+  .sub { color: var(--muted); font-size: 14px; }
+  .freshwrap { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .fresh { font-size: 22px; font-weight: 800; padding: 6px 12px; border-radius: 10px; background: var(--surface-2); white-space: nowrap; }
+  .fresh.ok { color: var(--good); } .fresh.stale { color: var(--warn); } .fresh.dead { color: #fff; background: #8a1f1f; }
+  .rbtn { font: inherit; font-size: 17px; font-weight: 700; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  .rbtn:active { background: var(--border); }
+  .checked { width: 100%; font-size: 13px; color: var(--muted); }
+  .maxbar { margin-top: 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 10px 14px; }
+  .maxrow { display: flex; align-items: center; gap: 10px; width: 100%; }
+  .maxbar label { font-weight: 700; color: var(--text-2); font-size: 15px; line-height: 1.15; }
+  .maxbar input { font: inherit; font-size: 22px; font-weight: 800; width: 88px; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); }
+  .maxbar .steps { margin-left: auto; display: flex; gap: 6px; }
+  .maxbar .rbtn { padding: 8px 11px; }
+  .maxbar .note { width: 100%; font-size: 13px; color: var(--muted); }
+  .banner { display: none; margin-top: 12px; padding: 14px 16px; border-radius: 14px; background: var(--good-bg); border: 2px solid var(--good); color: #d9ffe8; font-size: 21px; font-weight: 800; line-height: 1.25; }
+  .banner.on { display: block; }
+  .banner small { display: block; font-size: 15px; font-weight: 600; color: #a8e8c2; margin-top: 4px; }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px; min-width: 0; }
+  .card.buy { border-color: var(--good); box-shadow: inset 0 0 0 1px var(--good); }
+  .card .label { font-size: 15px; font-weight: 700; color: var(--text-2); }
+  .card .big { font-size: clamp(38px, 11vw, 60px); font-weight: 800; letter-spacing: -1px; line-height: 1.05; margin: 4px 0 0; }
+  .card.buy .big { color: var(--good); }
+  .card .total { font-size: 16px; color: var(--text-2); }
+  .card .total b { color: var(--text); }
+  .card .where { font-size: 15px; margin-top: 8px; }
+  .card .fl { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .card .d { font-size: 14px; margin-top: 6px; display: grid; gap: 1px; }
+  .pill { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: var(--surface-2); color: var(--text-2); text-transform: uppercase; letter-spacing: .04em; margin-top: 6px; }
+  .pill.low { color: var(--good); } .pill.high { color: var(--bad); }
+  .up { color: var(--bad); } .down { color: var(--good); } .flat { color: var(--muted); }
+  .party { margin-top: 10px; font-size: 14px; color: var(--text-2); }
+  .err { color: var(--bad); font-size: 14px; margin-top: 8px; }
+  /* heatmap */
+  .hm { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 10px; }
+  .hm + .hm { margin-top: 12px; }
+  .hm h3 { margin: 0 0 8px; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+  .hm h3 .sub { font-weight: 400; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex: none; }
+  .grid { display: grid; grid-template-columns: 44px repeat(5, 1fr); gap: 3px; }
+  .grid .ax { font-size: 11px; color: var(--muted); display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.1; }
+  .grid .corner { font-size: 10px; }
+  .cell { border-radius: 8px; padding: 6px 2px; text-align: center; min-height: 52px; display: flex; flex-direction: column; justify-content: center; background: var(--surface-2); border: 2px solid transparent; }
+  .cell b { font-size: 15px; font-weight: 800; }
+  .cell span { font-size: 11px; color: var(--text-2); }
+  .cell.none b { color: var(--muted); font-weight: 600; }
+  .cell.target { outline: 1px dashed var(--muted); outline-offset: -4px; }
+  .cell.buy { border-color: var(--good); }
+  .legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 4px; }
+  .chartbox { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 10px 8px 6px; height: 270px; position: relative; }
+  footer { margin-top: 18px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+  @media (max-width: 380px) { .cards { gap: 8px; } .card { padding: 12px 10px; } .grid { grid-template-columns: 38px repeat(5, 1fr); } .cell b { font-size: 13px; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Spring break · Milwaukee area → Puerto Vallarta</h1>
+  <div class="sub">Round trip · 2 adults + 1 child · target Sat Mar 20 → Sun Mar 28, 2027 ±2 days · Google Flights prices</div>
+  <div class="freshwrap">
+    <div class="fresh" id="fresh">loading…</div>
+    <button class="rbtn" id="refresh">↻ Refresh</button>
+    <div class="checked" id="checked"></div>
+  </div>
+
+  <div class="maxbar">
+    <div class="maxrow">
+      <label for="max">Max<br>$/person</label>
+      <input id="max" type="number" inputmode="numeric" min="0" step="25">
+      <div class="steps"><button class="rbtn" data-step="-25">−25</button><button class="rbtn" data-step="25">+25</button></div>
+    </div>
+    <div class="note" id="maxnote"></div>
+  </div>
+
+  <div class="banner" id="banner"></div>
+  <div class="cards">
+    <div class="card" id="c-ns"></div>
+    <div class="card" id="c-all"></div>
+  </div>
+  <div class="party" id="party"></div>
+  <div class="err" id="err"></div>
+
+  <section>
+    <h2>Cheapest nonstop by dates</h2>
+    <div id="heatmaps"></div>
+  </section>
+
+  <section><h2>Best nonstop over time · $/person</h2><div class="chartbox"><canvas id="ch-ns"></canvas></div></section>
+  <section><h2>Best overall over time · $/person</h2><div class="chartbox"><canvas id="ch-all"></canvas></div></section>
+
+  <footer>
+    Checked twice a day from Google Flights via SearchApi. Prices are round trip, per person, all taxes included; totals are ×3.
+    A 1-stop option counts as “best overall” only when it beats the same dates’ cheapest nonstop by $100+/person.
+    Baseline = first reading. Trailing avg = previous 7 readings. Tracking only — nothing is ever booked.
+  </footer>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const fmt$ = (v) => v == null ? "—" : "$" + Math.round(v).toLocaleString("en-US");
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const COLOR = { ORD: css("--ord"), MDW: css("--mdw"), MKE: css("--mke") };
+const NAME = { ORD: "Chicago O’Hare", MDW: "Chicago Midway", MKE: "Milwaukee" };
+const C = { text2: css("--text-2"), muted: css("--muted"), max: css("--max"), grid: "#2a2a28" };
+let H = null, L = null, MAX = 500, PARTY = 3;
+
+function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch { return null; } }
+const qp = new URLSearchParams(location.search);
+function setMax(v) { MAX = Math.max(25, Math.round(v)); $("max").value = MAX; store("flightsMax", String(MAX)); render(); }
+$("max").addEventListener("change", () => { const v = Number($("max").value); if (v > 0) setMax(v); });
+document.querySelectorAll("[data-step]").forEach((b) => b.addEventListener("click", () => setMax(MAX + Number(b.dataset.step))));
+
+// Same-folder files on GitHub Pages, plus raw.githubusercontent.com (no Pages deploy wait). Newest wins.
+function sources(file) {
+  const s = [file];
+  const m = location.hostname.match(/^([^.]+)\.github\.io$/), parts = location.pathname.split("/").filter(Boolean);
+  if (m && parts[0]) s.push(`https://raw.githubusercontent.com/${m[1]}/${parts[0]}/main/${parts.slice(1).filter((p) => !p.includes(".")).join("/")}/${file}`);
+  return s;
+}
+async function fetchNewest(file, stamp) {
+  const got = await Promise.allSettled(sources(file).map(async (u) => {
+    const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 10000);
+    try { const r = await fetch(u + "?t=" + Date.now(), { cache: "no-store", signal: ctl.signal }); if (!r.ok) throw 0; return await r.json(); }
+    finally { clearTimeout(timer); }
+  }));
+  const ok = got.filter((g) => g.status === "fulfilled").map((g) => g.value);
+  ok.sort((a, b) => String(stamp(b)).localeCompare(String(stamp(a))));
+  return ok[0] || null;
+}
+async function load() {
+  const [h, l] = await Promise.all([fetchNewest("history.json", (d) => d.updated), fetchNewest("latest.json", (d) => d.t)]);
+  if (!h) { $("err").textContent = H ? "Couldn't reach data — will retry." : "No readings yet — the first one runs once the SearchApi key is set up."; renderFresh(); return; }
+  $("err").textContent = "";
+  if (!H || h.updated >= H.updated) H = h;
+  if (l && (!L || l.t >= L.t)) L = l;
+  PARTY = H.trip?.party?.size || 3;
+  if (!store("flightsMax") && !qp.get("max")) MAX = H.trip?.maxPrice || 500;
+  $("max").value = MAX;
+  $("checked").textContent = "Checked " + new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) + " · new prices twice a day";
+  render();
+}
+MAX = Number(qp.get("max") || store("flightsMax") || 500);
+$("max").value = MAX;
+$("refresh").addEventListener("click", async () => { const b = $("refresh"); b.textContent = "Refreshing…"; await load(); b.textContent = "✓ Up to date"; setTimeout(() => (b.textContent = "↻ Refresh"), 2500); });
+
+// ---- helpers
+const avg = (a) => a.length ? a.reduce((s, x) => s + x, 0) / a.length : null;
+const trailN = () => H.trip?.trailingReadings || 7;
+const series = (k, o) => H.readings.map((r) => (o ? r.perOrigin?.[o]?.[k]?.price : r.best?.[k]?.price) ?? null);
+function trailingAt(xs, i) { return avg(xs.slice(Math.max(0, i - trailN()), i).filter((x) => x != null)); }
+function delta(cur, ref, label) {
+  if (cur == null || ref == null) return `<span class="flat">— ${label}</span>`;
+  const d = Math.round(cur - ref);
+  if (d === 0) return `<span class="flat">±0 ${label}</span>`;
+  return `<span class="${d < 0 ? "down" : "up"}">${d < 0 ? "▼" : "▲"} ${fmt$(Math.abs(d))} (${(Math.abs(d) / ref * 100).toFixed(1)}%) ${label}</span>`;
+}
+const dshort = (iso) => new Date(iso + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
+const comboOf = (b) => L?.combos?.find((c) => c.origin === b.origin && c.dep === b.dep && c.ret === b.ret);
+
+function renderCard(id, k, title) {
+  const R = H.readings, cur = R.at(-1).best[k], el = $(id), xs = series(k);
+  if (!cur) { el.className = "card"; el.innerHTML = `<div class="label">${title}</div><div class="big">—</div><div class="where sub">No ${k === "nonstop" ? "nonstops" : "flights"} found</div>`; return; }
+  const base = xs.find((x) => x != null), trail = trailingAt(xs, xs.length - 1);
+  const lvl = comboOf(cur)?.level;
+  const back = cur.stops === 0 && L?.returnLegs?.[cur.origin];
+  const backFl = back && H.readings.at(-1).perOrigin?.[cur.origin]?.nonstop?.combo === cur.combo ? ` · back ${back.flights.join(", ")}` : "";
+  el.className = "card" + (cur.price <= MAX ? " buy" : "");
+  el.innerHTML = `
+    <div class="label">${title}</div>
+    <div class="big">${fmt$(cur.price)}</div>
+    <div class="total">per person · <b>${fmt$(cur.price * PARTY)}</b> for ${PARTY}</div>
+    <div class="where"><span class="dot" style="background:${COLOR[cur.origin]}"></span> <b>${cur.origin}</b> ${dshort(cur.dep)} → ${dshort(cur.ret)}</div>
+    <div class="fl">${cur.airline || ""} · ${cur.stops === 0 ? "nonstop" : `${cur.stops} stop${cur.stops > 1 ? "s" : ""}${cur.via?.length ? " via " + cur.via.join(", ") : ""}`}${cur.flights?.length ? ` · out ${cur.flights.join(", ")}` : ""}${backFl}</div>
+    ${lvl ? `<span class="pill ${lvl}">Google: ${lvl}</span>` : ""}
+    <div class="d">${delta(cur.price, base, "vs baseline")}${delta(cur.price, trail, `vs ${trailN()}-reading avg`)}</div>`;
+}
+
+function renderBanner() {
+  const b = H.readings.at(-1).best.nonstop, el = $("banner");
+  if (!b || b.price > MAX) { el.className = "banner"; return; }
+  el.className = "banner on";
+  el.innerHTML = `BUY ZONE: nonstop ${fmt$(b.price)}/person · ${fmt$(b.price * PARTY)} total<small>${b.origin} ${dshort(b.dep)} → ${dshort(b.ret)} · ${b.airline || ""} · at or under your ${fmt$(MAX)} max · book it yourself on Google Flights / the airline</small>`;
+}
+
+function renderParty() {
+  const r = H.readings.at(-1), b = r.best.nonstop, p = r.party;
+  if (!b || !p) { $("party").textContent = ""; return; }
+  const diff = Math.round(p - b.price * PARTY);
+  $("party").innerHTML = Math.abs(diff) <= 3
+    ? `Child fare: same as adult (2 adults + 1 child quoted at ${fmt$(p)} on the best nonstop).`
+    : `Child fare differs: 2 adults + 1 child quoted at ${fmt$(p)} vs ${fmt$(b.price * PARTY)} for 3 adult fares (${diff < 0 ? "saves" : "costs"} ${fmt$(Math.abs(diff))}).`;
+}
+
+// Heatmap cell colour: green = cheaper than that cell's baseline, red = pricier, grey ≈ same.
+function cellColor(now, base) {
+  if (now == null || base == null) return "";
+  const pct = (now - base) / base, a = Math.min(1, Math.abs(pct) / 0.15);
+  if (Math.abs(pct) < 0.01) return "background: #2c2c2a";
+  const [r, g, bl] = pct < 0 ? [47, 191, 106] : [230, 103, 103];
+  return `background: rgba(${r},${g},${bl},${(0.18 + 0.55 * a).toFixed(2)})`;
+}
+function renderHeatmaps() {
+  const R = H.readings, cur = R.at(-1), base = R[0], trip = H.trip;
+  const deps = [], rets = [];
+  for (let i = -trip.flexDays; i <= trip.flexDays; i++) {
+    deps.push(new Date(Date.parse(trip.depart + "T12:00:00Z") + i * 864e5).toISOString().slice(0, 10));
+    rets.push(new Date(Date.parse(trip.return + "T12:00:00Z") + i * 864e5).toISOString().slice(0, 10));
+  }
+  const md = (iso) => iso.slice(5).replace("-", ""), lbl = (iso) => new Date(iso + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" }) + "<br>" + (+iso.slice(5, 7)) + "/" + (+iso.slice(8));
+  $("heatmaps").innerHTML = trip.origins.map((o) => {
+    const g = cur.grid?.[o] || {}, bg = base.grid?.[o] || {};
+    const anyNs = Object.values(g).some((c) => c[0] != null);
+    let html = `<div class="hm"><h3><span class="dot" style="background:${COLOR[o]}"></span>${o} <span class="sub">${NAME[o]}${anyNs ? "" : " · no nonstops found"}</span></h3><div class="grid"><div class="ax corner">out ↓ back →</div>`;
+    html += rets.map((r) => `<div class="ax">${lbl(r)}</div>`).join("");
+    for (const d of deps) {
+      html += `<div class="ax">${lbl(d)}</div>`;
+      for (const r of rets) {
+        const k = `${md(d)}-${md(r)}`, c = g[k] || [], b = bg[k] || [];
+        const target = d === trip.depart && r === trip.return ? " target" : "";
+        if (c[0] == null) {
+          const alt = c[1] != null && c[2] > 0 ? `<span>${c[2]}-stop ${fmt$(c[1])}</span>` : "";
+          html += `<div class="cell none${target}"><b>—</b>${alt}</div>`;
+        } else {
+          const pct = b[0] ? Math.round((c[0] - b[0]) / b[0] * 100) : null;
+          const ch = pct == null ? "" : pct === 0 ? "±0%" : (pct < 0 ? "▼" : "▲") + Math.abs(pct) + "%";
+          html += `<div class="cell${target}${c[0] <= MAX ? " buy" : ""}" style="${cellColor(c[0], b[0])}"><b>${fmt$(c[0])}</b><span>${ch}</span></div>`;
+        }
+      }
+    }
+    return html + `</div></div>`;
+  }).join("") + `<div class="legend"><span><i class="sw" style="background:rgba(47,191,106,.6)"></i>cheaper than baseline</span><span><i class="sw" style="background:rgba(230,103,103,.6)"></i>pricier</span><span><i class="sw" style="border:2px solid var(--good)"></i>at/under max</span><span><i class="sw" style="outline:1px dashed var(--muted);outline-offset:-3px"></i>target dates</span></div>`;
+}
+
+// ---- charts
+const charts = {};
+const tTick = (v) => new Date(v).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+function drawChart(id, k) {
+  if (!window.Chart) return;
+  const R = H.readings, xs = R.map((r) => Date.parse(r.t)), all = series(k);
+  const pts = (ys) => ys.map((y, i) => ({ x: xs[i], y }));
+  const base = all.find((x) => x != null);
+  const ds = H.trip.origins.map((o) => ({ label: o, data: pts(series(k, o)), borderColor: COLOR[o], backgroundColor: COLOR[o], borderWidth: 2.5, pointRadius: R.length < 4 ? 4 : 0, spanGaps: true }));
+  const flat = (y) => xs.length ? [{ x: xs[0], y }, { x: Math.max(xs.at(-1), xs[0] + 864e5), y }] : [];
+  if (base != null) ds.push({ label: "Baseline (best)", data: flat(base), borderColor: C.text2, borderDash: [6, 5], borderWidth: 1.5, pointRadius: 0 });
+  ds.push({ label: `${trailN()}-reading avg (best)`, data: pts(all.map((_, i) => i ? trailingAt(all, i) : null)), borderColor: C.text2, borderWidth: 1, pointRadius: 0, spanGaps: true });
+  ds.push({ label: `Max ${fmt$(MAX)}`, data: flat(MAX), borderColor: C.max, borderWidth: 2, pointRadius: 0 });
+  const opts = {
+    responsive: true, maintainAspectRatio: false, animation: false,
+    interaction: { mode: "nearest", axis: "x", intersect: false },
+    scales: {
+      x: { type: "linear", min: xs[0], max: Math.max(xs.at(-1), xs[0] + 864e5), grid: { color: C.grid }, ticks: { color: C.muted, maxTicksLimit: 5, callback: tTick, font: { size: 12 } } },
+      y: { grid: { color: C.grid }, ticks: { color: C.muted, font: { size: 12 }, callback: (v) => "$" + v } },
+    },
+    plugins: {
+      legend: { labels: { color: C.text2, boxWidth: 14, boxHeight: 2, font: { size: 12 } } },
+      tooltip: { callbacks: { title: (it) => new Date(it[0].parsed.x).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric" }), label: (c) => ` ${c.dataset.label}: ${fmt$(c.parsed.y)}` } },
+    },
+  };
+  if (charts[id]) { charts[id].data.datasets = ds; charts[id].options.scales = opts.scales; charts[id].update("none"); }
+  else charts[id] = new Chart($(id), { type: "line", data: { datasets: ds }, options: opts });
+}
+
+function renderFresh() {
+  const el = $("fresh");
+  if (!H?.readings?.length) { el.textContent = "no data yet"; el.className = "fresh stale"; return; }
+  const ms = Date.now() - Date.parse(H.readings.at(-1).t), h = ms / 36e5;
+  el.textContent = "updated " + (h < 1 ? `${Math.max(0, Math.floor(ms / 6e4))} min ago` : h < 48 ? `${Math.floor(h)} h ago` : `${Math.floor(h / 24)} days ago`);
+  el.className = "fresh " + (h <= 14 ? "ok" : h <= 26 ? "stale" : "dead");
+}
+
+function render() {
+  if (!H?.readings?.length) { renderFresh(); return; }
+  $("maxnote").textContent = `Push alerts use ${fmt$(H.trip?.maxPrice)} (set in flights/config.json); this box only changes what you see.`;
+  renderFresh(); renderBanner();
+  renderCard("c-ns", "nonstop", "Best nonstop");
+  renderCard("c-all", "overall", "Best overall");
+  renderParty(); renderHeatmaps();
+  drawChart("ch-ns", "nonstop"); drawChart("ch-all", "overall");
+}
+
+load();
+setInterval(load, 5 * 60_000);
+setInterval(renderFresh, 30_000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) load(); });
+window.addEventListener("pageshow", (e) => { if (e.persisted) load(); });
+</script>
+</body>
+</html>

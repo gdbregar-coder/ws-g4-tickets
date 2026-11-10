@@ -1,0 +1,34 @@
+name: flights
+on:
+  schedule:
+    # Twice daily, ~6 AM and ~6 PM Central. Exact timing doesn't matter for daily fares.
+    - cron: "5 11,23 * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: flights
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Collect fares (75 date/airport combos)
+        env:
+          SEARCHAPI_KEY: ${{ secrets.SEARCHAPI_KEY }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          DASHBOARD_URL: https://gdbregar-coder.github.io/ws-g4-tickets/flights/
+        run: node flights/collect.mjs
+      - name: Commit reading
+        run: |
+          git config user.name "price-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add flights/history.json flights/latest.json
+          git commit -q -m "flights reading $(date -u +%FT%TZ)"
+          for i in 1 2 3 4; do git pull -q --rebase origin main && git push -q origin HEAD:main && exit 0; sleep 5; done
+          exit 1
